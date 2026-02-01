@@ -1,0 +1,23 @@
+{
+  "name": "twiga-agm",
+  "version": "1.0.0",
+  "description": "Property Management System for Twiga Residence",
+  "private": true,
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "deploy:functions": "cd packages/functions && firebase deploy --only functions",
+    "deploy:web": "cd apps/web && vercel deploy --prod",
+    "deploy:admin": "cd apps/admin && vercel deploy --prod"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "turbo": "^1.9.0",
+    "typescript": "^5.0.0",
+    "eslint": "^8.0.0"
+  }
+}
