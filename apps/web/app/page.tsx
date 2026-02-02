@@ -280,10 +280,13 @@ export default function HomePage() {
               <h2 className="font-serif text-4xl md:text-5xl text-charcoal mt-4 mb-6">
                 Discover Zanzibar
               </h2>
-              <p className="text-charcoal/70 text-lg leading-relaxed mb-8">
-                Located in the enchanting island of Zanzibar, Twiga Residence offers easy access
-                to pristine beaches, historic Stone Town, and the vibrant local culture. Experience
+              <p className="text-charcoal/70 text-lg leading-relaxed mb-4">
+                Located in the heart of historic Stone Town, Baghani neighborhood, Twiga Residence
+                offers easy access to pristine beaches and the vibrant local culture. Experience
                 the perfect blend of relaxation and adventure.
+              </p>
+              <p className="text-charcoal/60 text-sm mb-8">
+                <span className="font-medium">Address:</span> Baghani, House No. 341, Stone Town, Unguja South, Zanzibar
               </p>
 
               <div className="space-y-4 mb-8">
@@ -316,15 +319,17 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <motion.button
-                onClick={() => setIsContactOpen(true)}
-                className="btn-outline flex items-center gap-2"
+              <motion.a
+                href="https://www.google.com/maps/place/-6.163145974899962,39.18822117111957"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-outline inline-flex items-center gap-2"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
                 Get Directions
                 <ArrowRight className="w-4 h-4" />
-              </motion.button>
+              </motion.a>
             </motion.div>
 
             <motion.div
@@ -454,7 +459,15 @@ export default function HomePage() {
                 </li>
                 <li className="flex items-start gap-3 text-white/60">
                   <MapPin className="w-4 h-4 text-gold mt-1" />
-                  <span>Zanzibar, Tanzania</span>
+                  <a
+                    href="https://www.google.com/maps/place/-6.163145974899962,39.18822117111957"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-gold transition-colors"
+                  >
+                    Baghani, House No. 341<br />
+                    Stone Town, Zanzibar
+                  </a>
                 </li>
               </ul>
             </div>

@@ -37,7 +37,7 @@ export async function initializeFirestoreSchema() {
     name: 'Twiga Residence',
     slug: 'twiga-residence',
     type: 'boutique',
-    location: { address: 'Plot X, Street Y', city: 'Zanzibar', country: 'TZ', coordinates: { lat: -6.16, lng: 39.19 } },
+    location: { address: 'Baghani, House No. 341, Stone Town', city: 'Zanzibar', region: 'Unguja South', country: 'TZ', coordinates: { lat: -6.163145974899962, lng: 39.18822117111957 } },
     settings: {
       payments: {
         flutterwave: {
