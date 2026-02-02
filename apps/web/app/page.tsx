@@ -292,25 +292,25 @@ export default function HomePage() {
               <div className="space-y-4 mb-8">
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 bg-gold/10 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-gold font-serif">5</span>
+                    <span className="text-gold font-serif">2</span>
                   </div>
                   <div>
-                    <p className="font-medium text-charcoal">Minutes to Beach</p>
-                    <p className="text-charcoal/60 text-sm">Crystal clear waters await</p>
+                    <p className="font-medium text-charcoal">Minutes Walk to Beach</p>
+                    <p className="text-charcoal/60 text-sm">Crystal clear Indian Ocean waters</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 bg-gold/10 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-gold font-serif">15</span>
+                    <span className="text-gold font-serif">0</span>
                   </div>
                   <div>
-                    <p className="font-medium text-charcoal">Minutes to Stone Town</p>
+                    <p className="font-medium text-charcoal">In the Heart of Stone Town</p>
                     <p className="text-charcoal/60 text-sm">UNESCO World Heritage Site</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 bg-gold/10 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-gold font-serif">30</span>
+                    <span className="text-gold font-serif">20</span>
                   </div>
                   <div>
                     <p className="font-medium text-charcoal">Minutes from Airport</p>
