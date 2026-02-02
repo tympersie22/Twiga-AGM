@@ -107,6 +107,10 @@ export default function PaymentForm({ booking, rooms, onSuccess, onBack }: Payme
         <h3 className="font-semibold text-gray-900 mb-4">Booking Summary</h3>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
+            <span className="text-gray-600">Guest</span>
+            <span className="font-medium">{String(booking.guestName)}</span>
+          </div>
+          <div className="flex justify-between">
             <span className="text-gray-600">Room</span>
             <span className="font-medium">{selectedRoom?.name}</span>
           </div>
@@ -117,6 +121,14 @@ export default function PaymentForm({ booking, rooms, onSuccess, onBack }: Payme
           <div className="flex justify-between">
             <span className="text-gray-600">Check-out</span>
             <span className="font-medium">{new Date(Number(booking.checkOut)).toLocaleDateString()}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Guests</span>
+            <span className="font-medium">{String(booking.numberOfGuests)} {Number(booking.numberOfGuests) === 1 ? 'guest' : 'guests'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Nights</span>
+            <span className="font-medium">{String(booking.nights)}</span>
           </div>
           <div className="flex justify-between border-t pt-2 mt-2">
             <span className="text-gray-900 font-semibold">Total Stay Cost</span>
@@ -176,12 +188,12 @@ export default function PaymentForm({ booking, rooms, onSuccess, onBack }: Payme
               <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
               <input
                 type="tel"
-                placeholder="+255..."
+                placeholder="+255712345678"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-700"
               />
-              <p className="text-xs text-gray-500 mt-1">You will receive a payment prompt on your phone</p>
+              <p className="text-xs text-gray-500 mt-1">Enter your mobile money registered number (with country code)</p>
             </div>
           </div>
         )}

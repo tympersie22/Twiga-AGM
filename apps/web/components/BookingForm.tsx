@@ -6,7 +6,7 @@ import type { TwigaRoom } from '@twiga/shared/types';
 import {
   validateBookingDates,
   validateEmail,
-  validateTanzanianPhone,
+  validateInternationalPhone,
   formatCurrency,
   calculateNights,
 } from '@twiga/shared';
@@ -25,6 +25,10 @@ export default function BookingForm({ rooms, selectedRoomId, onSubmit }: Booking
   const [guestName, setGuestName] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
+  const [guestCountry, setGuestCountry] = useState('');
+  const [guestNationality, setGuestNationality] = useState('');
+  const [passportId, setPassportId] = useState('');
+  const [estimatedArrival, setEstimatedArrival] = useState('');
   const [specialRequests, setSpecialRequests] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -47,9 +51,11 @@ export default function BookingForm({ rooms, selectedRoomId, onSubmit }: Booking
     if (!dateValidation.valid) newErrors.dates = dateValidation.error || '';
     if (!guestName) newErrors.guestName = 'Please enter your name';
     if (!guestEmail || !validateEmail(guestEmail)) newErrors.guestEmail = 'Please enter a valid email';
-    if (!guestPhone || !validateTanzanianPhone(guestPhone)) {
-      newErrors.guestPhone = 'Please enter a valid Tanzanian phone number (+255...)';
+    if (!guestPhone || !validateInternationalPhone(guestPhone)) {
+      newErrors.guestPhone = 'Please enter a valid phone number with country code (e.g., +255...)';
     }
+    if (!guestCountry) newErrors.guestCountry = 'Please select your country';
+    if (!guestNationality) newErrors.guestNationality = 'Please enter your nationality';
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -64,6 +70,10 @@ export default function BookingForm({ rooms, selectedRoomId, onSubmit }: Booking
         guestName,
         guestEmail,
         guestPhone,
+        guestCountry,
+        guestNationality,
+        passportId: passportId || undefined,
+        estimatedArrival: estimatedArrival || undefined,
         specialRequests,
         roomPrice: selectedRoom!.basePrice,
         totalPrice,
@@ -172,17 +182,104 @@ export default function BookingForm({ rooms, selectedRoomId, onSubmit }: Booking
             {errors.guestEmail && <p className="text-red-500 text-sm mt-1">{errors.guestEmail}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Phone (Tanzanian) *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
             <input
               type="tel"
-              placeholder="+255..."
+              placeholder="+1234567890"
               value={guestPhone}
               onChange={(e) => setGuestPhone(e.target.value)}
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-700 ${
                 errors.guestPhone ? 'border-red-500' : 'border-gray-300'
               }`}
             />
+            <p className="text-xs text-gray-500 mt-1">Include country code (e.g., +255 for Tanzania, +1 for USA)</p>
             {errors.guestPhone && <p className="text-red-500 text-sm mt-1">{errors.guestPhone}</p>}
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Country of Residence *</label>
+              <select
+                value={guestCountry}
+                onChange={(e) => setGuestCountry(e.target.value)}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-700 ${
+                  errors.guestCountry ? 'border-red-500' : 'border-gray-300'
+                }`}
+              >
+                <option value="">Select country...</option>
+                <option value="TZ">Tanzania</option>
+                <option value="KE">Kenya</option>
+                <option value="UG">Uganda</option>
+                <option value="RW">Rwanda</option>
+                <option value="ZA">South Africa</option>
+                <option value="US">United States</option>
+                <option value="GB">United Kingdom</option>
+                <option value="DE">Germany</option>
+                <option value="FR">France</option>
+                <option value="IT">Italy</option>
+                <option value="ES">Spain</option>
+                <option value="NL">Netherlands</option>
+                <option value="BE">Belgium</option>
+                <option value="CH">Switzerland</option>
+                <option value="AT">Austria</option>
+                <option value="AU">Australia</option>
+                <option value="NZ">New Zealand</option>
+                <option value="CA">Canada</option>
+                <option value="AE">United Arab Emirates</option>
+                <option value="SA">Saudi Arabia</option>
+                <option value="IN">India</option>
+                <option value="CN">China</option>
+                <option value="JP">Japan</option>
+                <option value="KR">South Korea</option>
+                <option value="SG">Singapore</option>
+                <option value="MY">Malaysia</option>
+                <option value="OTHER">Other</option>
+              </select>
+              {errors.guestCountry && <p className="text-red-500 text-sm mt-1">{errors.guestCountry}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Nationality *</label>
+              <input
+                type="text"
+                placeholder="e.g., Tanzanian, British, American"
+                value={guestNationality}
+                onChange={(e) => setGuestNationality(e.target.value)}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-700 ${
+                  errors.guestNationality ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              {errors.guestNationality && <p className="text-red-500 text-sm mt-1">{errors.guestNationality}</p>}
+            </div>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Passport/ID Number</label>
+              <input
+                type="text"
+                placeholder="For international guests"
+                value={passportId}
+                onChange={(e) => setPassportId(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-700"
+              />
+              <p className="text-xs text-gray-500 mt-1">Required for international guests</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Estimated Arrival Time</label>
+              <select
+                value={estimatedArrival}
+                onChange={(e) => setEstimatedArrival(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-700"
+              >
+                <option value="">Select time...</option>
+                <option value="early_morning">Early Morning (6AM - 9AM)</option>
+                <option value="morning">Morning (9AM - 12PM)</option>
+                <option value="afternoon">Afternoon (12PM - 3PM)</option>
+                <option value="late_afternoon">Late Afternoon (3PM - 6PM)</option>
+                <option value="evening">Evening (6PM - 9PM)</option>
+                <option value="night">Night (9PM - 12AM)</option>
+                <option value="late_night">Late Night (After 12AM)</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Standard check-in: 2PM, check-out: 11AM</p>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Special Requests</label>
@@ -191,7 +288,7 @@ export default function BookingForm({ rooms, selectedRoomId, onSubmit }: Booking
               onChange={(e) => setSpecialRequests(e.target.value)}
               rows={4}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-700"
-              placeholder="Optional"
+              placeholder="Airport pickup, dietary requirements, early check-in, late check-out, etc."
             />
           </div>
         </div>
