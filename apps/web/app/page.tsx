@@ -76,12 +76,12 @@ export default function HomePage() {
             {/* Logo */}
             <Link href="/" className="flex items-center space-x-3">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-300 ${
-                isScrolled ? 'bg-deep-blue' : 'bg-white/20 backdrop-blur-sm'
+                isScrolled ? 'bg-charcoal' : 'bg-white/20 backdrop-blur-sm'
               }`}>
                 <span className={`font-serif text-xl ${isScrolled ? 'text-white' : 'text-white'}`}>T</span>
               </div>
               <span className={`font-serif text-xl tracking-wide transition-colors duration-300 ${
-                isScrolled ? 'text-deep-blue' : 'text-white'
+                isScrolled ? 'text-charcoal' : 'text-white'
               }`}>
                 Twiga Residence
               </span>
@@ -195,7 +195,7 @@ export default function HomePage() {
             transition={{ duration: 0.8, ease: [0.65, 0, 0.35, 1] }}
           >
             <span className="text-gold text-sm tracking-[0.3em] uppercase">Welcome to</span>
-            <h2 className="font-serif text-4xl md:text-5xl text-deep-blue mt-4 mb-6">
+            <h2 className="font-serif text-4xl md:text-5xl text-charcoal mt-4 mb-6">
               A Sanctuary in Zanzibar
             </h2>
             <p className="text-charcoal/70 text-lg leading-relaxed mb-8">
@@ -223,7 +223,7 @@ export default function HomePage() {
             className="text-center mb-16"
           >
             <span className="text-gold text-sm tracking-[0.3em] uppercase">Accommodations</span>
-            <h2 className="font-serif text-4xl md:text-5xl text-deep-blue mt-4">
+            <h2 className="font-serif text-4xl md:text-5xl text-charcoal mt-4">
               Our Rooms & Apartment
             </h2>
           </motion.div>
@@ -232,7 +232,7 @@ export default function HomePage() {
       </section>
 
       {/* Amenities Section */}
-      <section id="amenities" className="py-24 px-4 sm:px-6 lg:px-8 bg-deep-blue text-white">
+      <section id="amenities" className="py-24 px-4 sm:px-6 lg:px-8 bg-charcoal text-white">
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -277,7 +277,7 @@ export default function HomePage() {
               transition={{ duration: 0.8, ease: [0.65, 0, 0.35, 1] }}
             >
               <span className="text-gold text-sm tracking-[0.3em] uppercase">Location</span>
-              <h2 className="font-serif text-4xl md:text-5xl text-deep-blue mt-4 mb-6">
+              <h2 className="font-serif text-4xl md:text-5xl text-charcoal mt-4 mb-6">
                 Discover Zanzibar
               </h2>
               <p className="text-charcoal/70 text-lg leading-relaxed mb-8">
@@ -339,7 +339,7 @@ export default function HomePage() {
                 alt="Zanzibar Beach"
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-deep-blue/40 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-charcoal/40 to-transparent" />
             </motion.div>
           </div>
         </div>
@@ -354,7 +354,7 @@ export default function HomePage() {
             viewport={{ once: true }}
             transition={{ duration: 0.8, ease: [0.65, 0, 0.35, 1] }}
           >
-            <h2 className="font-serif text-4xl md:text-5xl text-deep-blue mb-6">
+            <h2 className="font-serif text-4xl md:text-5xl text-charcoal mb-6">
               Begin Your Journey
             </h2>
             <p className="text-charcoal/70 text-lg mb-10 max-w-2xl mx-auto">

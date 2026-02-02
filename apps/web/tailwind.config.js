@@ -4,13 +4,13 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Luxury Color Palette (Omniyat-inspired)
-        'deep-blue': '#10103D',
+        // Luxury Color Palette
         'gold': '#A18A6B',
         'gold-light': '#C4A97D',
         'sand': '#DBC0A8',
         'cream': '#F3F1EF',
         'charcoal': '#1D1D1D',
+        'charcoal-light': '#2D2D2D',
         'warm-gray': '#E2DFDB',
       },
       fontFamily: {

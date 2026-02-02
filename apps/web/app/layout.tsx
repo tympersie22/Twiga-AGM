@@ -33,7 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${playfair.variable} ${dmSans.variable}`}>
       <head>
-        <meta name="theme-color" content="#10103D" />
+        <meta name="theme-color" content="#1D1D1D" />
         <link rel="icon" href="/favicon.ico" />
       </head>
       <body className="font-sans">

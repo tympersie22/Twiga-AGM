@@ -60,8 +60,8 @@ export default function RoomShowcase() {
             onClick={() => setFilter(type)}
             className={`px-6 py-2 text-sm font-medium tracking-wider uppercase transition-all duration-300 ${
               filter === type
-                ? 'bg-deep-blue text-white'
-                : 'bg-transparent text-charcoal/60 hover:text-deep-blue border border-warm-gray hover:border-deep-blue'
+                ? 'bg-charcoal text-white'
+                : 'bg-transparent text-charcoal/60 hover:text-charcoal border border-warm-gray hover:border-charcoal'
             }`}
           >
             {type === 'all' ? 'All' : type === 'standard' ? 'Rooms' : 'Apartment'}
@@ -98,7 +98,7 @@ export default function RoomShowcase() {
               <span className="text-gold text-sm tracking-widest uppercase mb-2">
                 Our Signature
               </span>
-              <h3 className="font-serif text-3xl lg:text-4xl text-deep-blue mb-4">
+              <h3 className="font-serif text-3xl lg:text-4xl text-charcoal mb-4">
                 {featuredRoom.name}
               </h3>
               <p className="text-charcoal/70 mb-6 leading-relaxed">
@@ -109,15 +109,15 @@ export default function RoomShowcase() {
               {/* Features */}
               <div className="grid grid-cols-3 gap-4 mb-8">
                 <div className="text-center p-4 bg-cream rounded-sm">
-                  <p className="font-serif text-2xl text-deep-blue">{featuredRoom.maxGuests}</p>
+                  <p className="font-serif text-2xl text-charcoal">{featuredRoom.maxGuests}</p>
                   <p className="text-xs text-charcoal/60 uppercase tracking-wider">Guests</p>
                 </div>
                 <div className="text-center p-4 bg-cream rounded-sm">
-                  <p className="font-serif text-2xl text-deep-blue">{featuredRoom.bedroomCount}</p>
+                  <p className="font-serif text-2xl text-charcoal">{featuredRoom.bedroomCount}</p>
                   <p className="text-xs text-charcoal/60 uppercase tracking-wider">Bedroom</p>
                 </div>
                 <div className="text-center p-4 bg-cream rounded-sm">
-                  <p className="font-serif text-2xl text-deep-blue">{featuredRoom.bathroomCount}</p>
+                  <p className="font-serif text-2xl text-charcoal">{featuredRoom.bathroomCount}</p>
                   <p className="text-xs text-charcoal/60 uppercase tracking-wider">Bathrooms</p>
                 </div>
               </div>
@@ -138,7 +138,7 @@ export default function RoomShowcase() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-charcoal/60">From</p>
-                  <p className="font-serif text-2xl text-deep-blue">
+                  <p className="font-serif text-2xl text-charcoal">
                     TZS {(featuredRoom.basePrice / 1000000).toFixed(0)}M
                     <span className="text-sm text-charcoal/60 font-sans"> / night</span>
                   </p>

@@ -49,7 +49,7 @@ export default function RoomCard({ room, index = 0 }: RoomCardProps) {
         {/* Price Badge */}
         <div className="absolute top-4 right-4 text-right">
           <div className="bg-white/95 backdrop-blur-sm px-3 py-2 rounded-sm">
-            <p className="text-lg font-serif text-deep-blue">
+            <p className="text-lg font-serif text-charcoal">
               {formatCurrency(room.basePrice, 'TZS')}
             </p>
             <p className="text-xs text-charcoal/60">per night</p>
@@ -71,7 +71,7 @@ export default function RoomCard({ room, index = 0 }: RoomCardProps) {
       {/* Content */}
       <div className="p-6">
         {/* Room Name */}
-        <h3 className="font-serif text-xl text-deep-blue mb-2 group-hover:text-gold transition-colors duration-300">
+        <h3 className="font-serif text-xl text-charcoal mb-2 group-hover:text-gold transition-colors duration-300">
           {room.name}
         </h3>
 

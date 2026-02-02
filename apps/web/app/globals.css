@@ -4,12 +4,12 @@
 
 :root {
   /* Luxury Color Palette */
-  --color-deep-blue: #10103D;
   --color-gold: #A18A6B;
   --color-gold-light: #C4A97D;
   --color-sand: #DBC0A8;
   --color-cream: #F3F1EF;
   --color-charcoal: #1D1D1D;
+  --color-charcoal-light: #2D2D2D;
   --color-warm-gray: #E2DFDB;
 
   /* Animation Timing */
@@ -36,7 +36,7 @@
 
   /* Selection styling */
   ::selection {
-    @apply bg-gold/30 text-deep-blue;
+    @apply bg-gold/30 text-charcoal;
   }
 }
 

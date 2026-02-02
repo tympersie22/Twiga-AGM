@@ -66,7 +66,7 @@ export function ContactDrawer({ isOpen, onClose }: ContactDrawerProps) {
           >
             {/* Header */}
             <div className="sticky top-0 bg-cream border-b border-warm-gray px-6 py-4 flex items-center justify-between">
-              <h2 className="font-serif text-2xl text-deep-blue">Get in Touch</h2>
+              <h2 className="font-serif text-2xl text-charcoal">Get in Touch</h2>
               <button
                 onClick={onClose}
                 className="p-2 hover:bg-warm-gray rounded-full transition-colors"
@@ -105,7 +105,7 @@ export function ContactDrawer({ isOpen, onClose }: ContactDrawerProps) {
                     href="tel:+255XXXXXXXXX"
                     className="flex items-center gap-4 p-4 bg-white rounded-lg hover:shadow-md transition-all group"
                   >
-                    <div className="w-10 h-10 bg-deep-blue rounded-full flex items-center justify-center">
+                    <div className="w-10 h-10 bg-charcoal rounded-full flex items-center justify-center">
                       <Phone className="w-5 h-5 text-white" />
                     </div>
                     <div>
