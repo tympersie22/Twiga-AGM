@@ -1,5 +1,14 @@
 import * as admin from 'firebase-admin';
 
+// Initialize Firebase Admin with service account or default credentials
+if (!admin.apps.length) {
+  admin.initializeApp({
+    projectId: 'twiga-agm-964b9',
+  });
+}
+
+const db = admin.firestore();
+
 const rooms = [
   { id: 'room-1', name: 'Standard Room 1', type: 'standard', maxGuests: 2, basePrice: 15000000, amenities: ['WiFi', 'AC', 'En-suite', 'Flat screen TV'], images: [], description: 'Comfortable standard room', bedroomCount: 1, bathroomCount: 1 },
   { id: 'room-2', name: 'Standard Room 2', type: 'standard', maxGuests: 2, basePrice: 15000000, amenities: ['WiFi', 'AC', 'En-suite', 'Flat screen TV'], images: [], description: 'Comfortable standard room', bedroomCount: 1, bathroomCount: 1 },
@@ -12,10 +21,11 @@ const rooms = [
   { id: 'apartment-1', name: '1-Bedroom Cozy Apartment', type: 'apartment', maxGuests: 2, basePrice: 20000000, amenities: ['WiFi', 'AC', 'Kitchen', 'Living Room', 'Balcony'], images: [], description: 'Cozy 1-bedroom apartment', bedroomCount: 1, bathroomCount: 2 },
 ];
 
-export async function initializeFirestoreSchema() {
-  if (!admin.apps.length) admin.initializeApp();
-  const db = admin.firestore();
+async function seed() {
+  console.log('🌱 Starting Firestore seed...');
 
+  // Create company
+  console.log('Creating company: twiga-agm');
   await db.collection('companies').doc('twiga-agm').set({
     id: 'twiga-agm',
     name: 'Twiga AGM',
@@ -30,6 +40,8 @@ export async function initializeFirestoreSchema() {
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
+  // Create property
+  console.log('Creating property: twiga-residence');
   const propertyRef = db.collection('companies').doc('twiga-agm').collection('properties').doc('twiga-residence');
   await propertyRef.set({
     id: 'twiga-residence',
@@ -37,7 +49,7 @@ export async function initializeFirestoreSchema() {
     name: 'Twiga Residence',
     slug: 'twiga-residence',
     type: 'boutique',
-    location: { address: 'Baghani, House No. 341, Stone Town', city: 'Zanzibar', region: 'Unguja South', country: 'TZ', coordinates: { lat: -6.163145974899962, lng: 39.18822117111957 } },
+    location: { address: 'Plot X, Street Y', city: 'Zanzibar', country: 'TZ', coordinates: { lat: -6.16, lng: 39.19 } },
     settings: {
       payments: {
         flutterwave: {
@@ -59,9 +71,26 @@ export async function initializeFirestoreSchema() {
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
+  // Create rooms
+  console.log('Creating rooms...');
   const roomsRef = propertyRef.collection('rooms');
   for (const room of rooms) {
-    await roomsRef.doc(room.id).set(room);
+    console.log(`  - ${room.name}`);
+    await roomsRef.doc(room.id).set({
+      ...room,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
   }
-  console.log('Firestore schema initialized for Twiga AGM');
+
+  console.log('✅ Firestore seed complete!');
+  console.log(`   Created ${rooms.length} rooms (8 standard + 1 apartment)`);
+  console.log('   Location: Zanzibar, Tanzania');
 }
+
+seed()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error('❌ Seed failed:', error);
+    process.exit(1);
+  });

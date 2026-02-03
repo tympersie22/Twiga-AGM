@@ -8,6 +8,13 @@ export function validateTanzanianPhone(phone: string): boolean {
   return regex.test(phone);
 }
 
+export function validateInternationalPhone(phone: string): boolean {
+  // Accepts international phone format: + followed by 7-15 digits
+  // Examples: +1234567890, +255123456789, +447911123456
+  const regex = /^\+\d{7,15}$/;
+  return regex.test(phone.replace(/[\s\-\(\)]/g, ''));
+}
+
 export function validateBookingDates(checkIn: number, checkOut: number): {
   valid: boolean;
   error?: string;

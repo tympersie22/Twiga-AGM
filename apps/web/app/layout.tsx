@@ -1,26 +1,42 @@
 import type { Metadata } from 'next';
-import { Poppins } from 'next/font/google';
+import { Playfair_Display, DM_Sans } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/Providers';
 
-const poppins = Poppins({
+const playfair = Playfair_Display({
   subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-serif',
+  display: 'swap',
+});
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-sans',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
-  title: 'Twiga Residence - Luxury Stays in Dar es Salaam',
-  description: 'Book your perfect stay at Twiga Residence. Luxury boutique accommodations with modern amenities.',
-  keywords: 'hotel, booking, dar es salaam, zanzibar, accommodation',
+  title: 'Twiga Residence | Luxury Boutique Hotel in Zanzibar',
+  description: 'Experience unparalleled luxury at Twiga Residence. A boutique sanctuary in Zanzibar featuring 8 elegant rooms and a cozy apartment with breathtaking views.',
+  keywords: 'luxury hotel, zanzibar, boutique hotel, accommodation, tanzania, beach resort',
+  openGraph: {
+    title: 'Twiga Residence | Luxury Boutique Hotel in Zanzibar',
+    description: 'Experience unparalleled luxury at Twiga Residence. A boutique sanctuary in Zanzibar.',
+    type: 'website',
+    locale: 'en_US',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${playfair.variable} ${dmSans.variable}`}>
       <head>
-        <meta name="theme-color" content="#2d5f2e" />
+        <meta name="theme-color" content="#1D1D1D" />
+        <link rel="icon" href="/favicon.ico" />
       </head>
-      <body className={poppins.className}>
+      <body className="font-sans">
         <Providers>{children}</Providers>
       </body>
     </html>
