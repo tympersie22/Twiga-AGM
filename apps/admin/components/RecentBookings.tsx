@@ -1,40 +1,48 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, query, limit } from 'firebase/firestore';
-import type { TwigaBooking } from '@twiga/shared/types';
+import type { TwigaBooking, TwigaRoom } from '@twiga/shared/types';
 import { formatCurrency, formatDate } from '@twiga/shared/utils/formatting';
 
-export default function RecentBookings() {
-  const [bookings, setBookings] = useState<TwigaBooking[]>([]);
-  const [loading, setLoading] = useState(true);
+interface RecentBookingsProps {
+  bookings: TwigaBooking[];
+  rooms: TwigaRoom[];
+  loading: boolean;
+}
 
-  useEffect(() => {
-    const fetchBookings = async () => {
-      try {
-        const bookingsRef = collection(
-          db,
-          'companies',
-          'twiga-agm',
-          'properties',
-          'twiga-residence',
-          'bookings'
-        );
-        const q = query(bookingsRef, limit(5));
-        const snapshot = await getDocs(q);
-        setBookings(snapshot.docs.map((doc) => doc.data() as TwigaBooking));
-      } catch (error) {
-        console.error('Error fetching bookings:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchBookings();
-  }, []);
+const statusStyles: Record<string, string> = {
+  confirmed: 'bg-green-500/20 text-green-400',
+  pending_payment: 'bg-yellow-500/20 text-yellow-400',
+  pay_on_arrival: 'bg-blue-500/20 text-blue-400',
+  completed: 'bg-gray-500/20 text-gray-300',
+  cancelled: 'bg-red-500/20 text-red-400',
+};
+
+const statusLabels: Record<string, string> = {
+  confirmed: 'Confirmed',
+  pending_payment: 'Pending',
+  pay_on_arrival: 'Pay on Arrival',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+};
+
+export default function RecentBookings({ bookings, rooms, loading }: RecentBookingsProps) {
+  const roomName = (roomId: string) => {
+    const room = rooms.find((r) => r.id === roomId);
+    return room?.name || roomId;
+  };
 
   if (loading) {
-    return <div className="text-gray-400">Loading...</div>;
+    return (
+      <div className="space-y-3">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-12 bg-gray-700 rounded animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (bookings.length === 0) {
+    return <div className="text-gray-400 text-center py-8">No bookings yet</div>;
   }
 
   return (
@@ -42,31 +50,23 @@ export default function RecentBookings() {
       <table className="w-full text-sm">
         <thead className="border-b border-gray-700">
           <tr>
-            <th className="text-left py-3 px-4 font-semibold">Guest</th>
-            <th className="text-left py-3 px-4 font-semibold">Room</th>
-            <th className="text-left py-3 px-4 font-semibold">Check In</th>
-            <th className="text-left py-3 px-4 font-semibold">Amount</th>
-            <th className="text-left py-3 px-4 font-semibold">Status</th>
+            <th className="text-left py-3 px-4 font-semibold text-gray-400">Guest</th>
+            <th className="text-left py-3 px-4 font-semibold text-gray-400">Room</th>
+            <th className="text-left py-3 px-4 font-semibold text-gray-400">Check In</th>
+            <th className="text-left py-3 px-4 font-semibold text-gray-400">Amount</th>
+            <th className="text-left py-3 px-4 font-semibold text-gray-400">Status</th>
           </tr>
         </thead>
         <tbody>
           {bookings.map((booking) => (
-            <tr key={booking.id} className="border-b border-gray-700 hover:bg-gray-700 transition">
-              <td className="py-3 px-4">{booking.guestName}</td>
-              <td className="py-3 px-4">{booking.roomId}</td>
-              <td className="py-3 px-4">{formatDate(booking.checkIn)}</td>
-              <td className="py-3 px-4 font-semibold">{formatCurrency(booking.totalPrice, 'TZS')}</td>
+            <tr key={booking.id} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition">
+              <td className="py-3 px-4 text-white">{booking.guestName}</td>
+              <td className="py-3 px-4 text-gray-300">{roomName(booking.roomId)}</td>
+              <td className="py-3 px-4 text-gray-300">{formatDate(booking.checkIn)}</td>
+              <td className="py-3 px-4 font-semibold text-white">{formatCurrency(booking.totalPrice, 'TZS')}</td>
               <td className="py-3 px-4">
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    booking.status === 'confirmed'
-                      ? 'bg-green-100 text-green-800'
-                      : booking.status === 'pending_payment'
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : 'bg-red-100 text-red-800'
-                  }`}
-                >
-                  {booking.status}
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusStyles[booking.status] || 'bg-gray-500/20 text-gray-400'}`}>
+                  {statusLabels[booking.status] || booking.status}
                 </span>
               </td>
             </tr>

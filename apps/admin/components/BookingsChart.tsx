@@ -1,43 +1,26 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import type { TwigaBooking } from '@twiga/shared/types';
 
-export default function BookingsChart() {
-  const [data, setData] = useState<{ month: string; count: number }[]>([]);
+interface BookingsChartProps {
+  bookings: TwigaBooking[];
+}
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const bookingsRef = collection(
-          db,
-          'companies',
-          'twiga-agm',
-          'properties',
-          'twiga-residence',
-          'bookings'
-        );
-        const confirmed = await getDocs(query(bookingsRef, where('status', '==', 'confirmed')));
-        const byMonth: Record<string, number> = {};
-        confirmed.docs.forEach((doc) => {
-          const d = doc.data();
-          const date = new Date(d.checkIn);
-          const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-          byMonth[key] = (byMonth[key] || 0) + 1;
-        });
-        setData(
-          Object.entries(byMonth)
-            .map(([month, count]) => ({ month, count }))
-            .sort((a, b) => a.month.localeCompare(b.month))
-        );
-      } catch (error) {
-        console.error('Error fetching chart data:', error);
-      }
-    };
-    fetchData();
-  }, []);
+export default function BookingsChart({ bookings }: BookingsChartProps) {
+  const data = useMemo(() => {
+    const confirmed = bookings.filter((b) => b.status === 'confirmed' || b.status === 'completed');
+    const byMonth: Record<string, number> = {};
+    confirmed.forEach((b) => {
+      const date = new Date(b.checkIn);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      byMonth[key] = (byMonth[key] || 0) + 1;
+    });
+    return Object.entries(byMonth)
+      .map(([month, count]) => ({ month, count }))
+      .sort((a, b) => a.month.localeCompare(b.month));
+  }, [bookings]);
 
   if (data.length === 0) {
     return <div className="h-64 flex items-center justify-center text-gray-400">No booking data yet</div>;
@@ -47,9 +30,16 @@ export default function BookingsChart() {
     <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data}>
-          <XAxis dataKey="month" stroke="#9ca3af" />
-          <YAxis stroke="#9ca3af" />
-          <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none' }} />
+          <XAxis dataKey="month" stroke="#9ca3af" fontSize={12} />
+          <YAxis stroke="#9ca3af" fontSize={12} />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: '#1f2937',
+              border: '1px solid #374151',
+              borderRadius: '8px',
+              color: '#fff',
+            }}
+          />
           <Bar dataKey="count" fill="#22c55e" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>

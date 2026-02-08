@@ -4,30 +4,34 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import RoomCard from './RoomCard';
 import type { TwigaRoom } from '@twiga/shared/types';
-import { db } from '@/lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { fetchRooms } from '@/lib/data';
 
 export default function RoomShowcase() {
   const [rooms, setRooms] = useState<TwigaRoom[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchRooms = async () => {
+    const loadRooms = async () => {
       try {
-        const roomsRef = collection(db, 'companies', 'twiga-agm', 'properties', 'twiga-residence', 'rooms');
-        const snapshot = await getDocs(roomsRef);
-        setRooms(snapshot.docs.map((doc) => doc.data() as TwigaRoom));
-      } catch (error) {
-        console.error('Error fetching rooms:', error);
+        const data = await fetchRooms();
+        setRooms(data);
+      } catch {
+        // handled
       } finally {
         setLoading(false);
       }
     };
-    fetchRooms();
+    loadRooms();
   }, []);
 
   if (loading) {
-    return <div className="text-center text-gray-600">Loading rooms...</div>;
+    return (
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="bg-gray-100 rounded-lg animate-pulse h-96" />
+        ))}
+      </div>
+    );
   }
 
   return (
