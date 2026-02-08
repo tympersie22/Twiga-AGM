@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import type { TwigaRoom } from '@twiga/shared/types';
 import {
   validateBookingDates,
@@ -48,7 +47,7 @@ export default function BookingForm({ rooms, selectedRoomId, onSubmit }: Booking
     if (!guestName) newErrors.guestName = 'Please enter your name';
     if (!guestEmail || !validateEmail(guestEmail)) newErrors.guestEmail = 'Please enter a valid email';
     if (!guestPhone || !validateTanzanianPhone(guestPhone)) {
-      newErrors.guestPhone = 'Please enter a valid Tanzanian phone number (+255...)';
+      newErrors.guestPhone = 'Please enter a valid Tanzanian phone (+255...)';
     }
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -77,22 +76,18 @@ export default function BookingForm({ rooms, selectedRoomId, onSubmit }: Booking
   };
 
   return (
-    <motion.form
-      onSubmit={handleSubmit}
-      className="bg-white rounded-lg shadow p-8 space-y-6"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-    >
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Booking Details</h2>
+    <form onSubmit={handleSubmit} className="card-dark p-8 space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-1">Booking Details</h2>
+        <p className="text-text-muted text-sm">Fill in the details below to reserve your stay.</p>
+      </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Select Room *</label>
+        <label className="block text-xs text-text-muted font-mono mb-2">Select Room *</label>
         <select
           value={roomId}
           onChange={(e) => setRoomId(e.target.value)}
-          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-700 focus:border-transparent ${
-            errors.roomId ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`input-dark ${errors.roomId ? 'border-red-500/50' : ''}`}
         >
           <option value="">Choose a room...</option>
           {rooms.map((room) => (
@@ -101,42 +96,38 @@ export default function BookingForm({ rooms, selectedRoomId, onSubmit }: Booking
             </option>
           ))}
         </select>
-        {errors.roomId && <p className="text-red-500 text-sm mt-1">{errors.roomId}</p>}
+        {errors.roomId && <p className="text-red-400 text-xs mt-1">{errors.roomId}</p>}
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Check In *</label>
+          <label className="block text-xs text-text-muted font-mono mb-2">Check In *</label>
           <input
             type="date"
             value={checkIn}
             onChange={(e) => setCheckIn(e.target.value)}
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-700 ${
-              errors.checkIn ? 'border-red-500' : 'border-gray-300'
-            }`}
+            className={`input-dark ${errors.checkIn ? 'border-red-500/50' : ''}`}
           />
-          {errors.checkIn && <p className="text-red-500 text-sm mt-1">{errors.checkIn}</p>}
+          {errors.checkIn && <p className="text-red-400 text-xs mt-1">{errors.checkIn}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Check Out *</label>
+          <label className="block text-xs text-text-muted font-mono mb-2">Check Out *</label>
           <input
             type="date"
             value={checkOut}
             onChange={(e) => setCheckOut(e.target.value)}
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-700 ${
-              errors.checkOut ? 'border-red-500' : 'border-gray-300'
-            }`}
+            className={`input-dark ${errors.checkOut ? 'border-red-500/50' : ''}`}
           />
-          {errors.checkOut && <p className="text-red-500 text-sm mt-1">{errors.checkOut}</p>}
+          {errors.checkOut && <p className="text-red-400 text-xs mt-1">{errors.checkOut}</p>}
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Number of Guests *</label>
+        <label className="block text-xs text-text-muted font-mono mb-2">Number of Guests *</label>
         <select
           value={numberOfGuests}
           onChange={(e) => setNumberOfGuests(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-700"
+          className="input-dark"
         >
           {[1, 2, 3, 4, 5, 6].map((n) => (
             <option key={n} value={n}>{n} {n === 1 ? 'Guest' : 'Guests'}</option>
@@ -144,90 +135,89 @@ export default function BookingForm({ rooms, selectedRoomId, onSubmit }: Booking
         </select>
       </div>
 
-      <div className="border-t pt-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Information</h3>
+      <div className="border-t border-surface-border pt-6">
+        <h3 className="text-lg font-semibold text-white mb-4">Your Information</h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+            <label className="block text-xs text-text-muted font-mono mb-2">Full Name *</label>
             <input
               type="text"
               value={guestName}
               onChange={(e) => setGuestName(e.target.value)}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-700 ${
-                errors.guestName ? 'border-red-500' : 'border-gray-300'
-              }`}
+              placeholder="Your full name"
+              className={`input-dark ${errors.guestName ? 'border-red-500/50' : ''}`}
             />
-            {errors.guestName && <p className="text-red-500 text-sm mt-1">{errors.guestName}</p>}
+            {errors.guestName && <p className="text-red-400 text-xs mt-1">{errors.guestName}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+            <label className="block text-xs text-text-muted font-mono mb-2">Email *</label>
             <input
               type="email"
               value={guestEmail}
               onChange={(e) => setGuestEmail(e.target.value)}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-700 ${
-                errors.guestEmail ? 'border-red-500' : 'border-gray-300'
-              }`}
+              placeholder="your@email.com"
+              className={`input-dark ${errors.guestEmail ? 'border-red-500/50' : ''}`}
             />
-            {errors.guestEmail && <p className="text-red-500 text-sm mt-1">{errors.guestEmail}</p>}
+            {errors.guestEmail && <p className="text-red-400 text-xs mt-1">{errors.guestEmail}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Phone (Tanzanian) *</label>
+            <label className="block text-xs text-text-muted font-mono mb-2">Phone (Tanzanian) *</label>
             <input
               type="tel"
               placeholder="+255..."
               value={guestPhone}
               onChange={(e) => setGuestPhone(e.target.value)}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-700 ${
-                errors.guestPhone ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`input-dark ${errors.guestPhone ? 'border-red-500/50' : ''}`}
             />
-            {errors.guestPhone && <p className="text-red-500 text-sm mt-1">{errors.guestPhone}</p>}
+            {errors.guestPhone && <p className="text-red-400 text-xs mt-1">{errors.guestPhone}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Special Requests</label>
+            <label className="block text-xs text-text-muted font-mono mb-2">Special Requests</label>
             <textarea
               value={specialRequests}
               onChange={(e) => setSpecialRequests(e.target.value)}
               rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-700"
-              placeholder="Optional"
+              className="input-dark resize-none"
+              placeholder="Any special requirements..."
             />
           </div>
         </div>
       </div>
 
-      {selectedRoom && checkIn && checkOut && (
-        <div className="bg-green-50 rounded-lg p-6 border border-green-200">
+      {selectedRoom && checkIn && checkOut && nights > 0 && (
+        <div className="bg-accent-muted rounded-2xl p-6 border border-accent/20">
           <div className="space-y-2 mb-4">
             <div className="flex justify-between">
-              <span className="text-gray-600">{selectedRoom.name}</span>
-              <span className="font-medium">{formatCurrency(selectedRoom.basePrice, 'TZS')}/night</span>
+              <span className="text-text-secondary">{selectedRoom.name}</span>
+              <span className="font-medium text-white">{formatCurrency(selectedRoom.basePrice, 'TZS')}/night</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">{nights} {nights === 1 ? 'night' : 'nights'}</span>
-              <span className="font-medium">{formatCurrency(totalPrice, 'TZS')}</span>
+              <span className="text-text-secondary">{nights} {nights === 1 ? 'night' : 'nights'}</span>
+              <span className="font-medium text-white">{formatCurrency(totalPrice, 'TZS')}</span>
             </div>
           </div>
-          <div className="border-t border-green-200 pt-2 flex justify-between">
-            <span className="font-semibold text-gray-900">Total</span>
-            <span className="text-2xl font-bold text-green-700">{formatCurrency(totalPrice, 'TZS')}</span>
+          <div className="border-t border-accent/20 pt-3 flex justify-between">
+            <span className="font-semibold text-white">Total</span>
+            <span className="text-2xl font-bold text-accent">{formatCurrency(totalPrice, 'TZS')}</span>
           </div>
-          <p className="text-xs text-gray-600 mt-2">* 50% deposit required to confirm booking</p>
+          <p className="text-xs text-text-muted mt-2">* 50% deposit required to confirm booking</p>
         </div>
       )}
 
       {errors.submit && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">{errors.submit}</div>
+        <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm">{errors.submit}</div>
+      )}
+      {errors.dates && (
+        <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm">{errors.dates}</div>
       )}
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-green-700 text-white py-3 rounded-lg font-semibold hover:bg-green-800 transition disabled:opacity-50"
+        className="btn-primary w-full justify-center disabled:opacity-50"
       >
         {loading ? 'Processing...' : 'Continue to Payment'}
       </button>
-    </motion.form>
+    </form>
   );
 }

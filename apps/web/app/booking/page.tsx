@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
 import Link from 'next/link';
 import BookingForm from '@/components/BookingForm';
 import PaymentForm from '@/components/PaymentForm';
+import Container from '@/components/ui/Container';
 import type { TwigaRoom } from '@twiga/shared/types';
 import { formatCurrency, formatDate } from '@twiga/shared/utils/formatting';
 import { fetchRooms } from '@/lib/data';
+import { ArrowLeft, CheckCircle } from 'lucide-react';
 
 type BookingStep = 'details' | 'payment' | 'confirmation';
 
@@ -47,53 +48,53 @@ export default function BookingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen pt-28 pb-20 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-green-700 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading booking...</p>
+          <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-text-muted">Loading booking...</p>
         </div>
       </div>
     );
   }
 
   const selectedRoomData = bookingData ? rooms.find((r) => r.id === bookingData.roomId) : null;
-
   const steps = ['details', 'payment', 'confirmation'] as const;
+
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <Link href="/" className="inline-flex items-center text-green-700 hover:text-green-800 mb-6 transition">
-          <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+    <div className="min-h-screen pt-28 pb-20">
+      <Container className="max-w-4xl">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-text-muted hover:text-accent transition-colors mb-8"
+        >
+          <ArrowLeft className="w-4 h-4" />
           Back to Home
         </Link>
 
+        {/* Progress bar */}
         <div className="mb-12">
           <div className="flex justify-between mb-4">
             {steps.map((s, i) => (
               <div
                 key={s}
                 className={`flex-1 text-center ${
-                  steps.indexOf(step) >= i ? 'text-green-700' : 'text-gray-400'
+                  steps.indexOf(step) >= i ? 'text-accent' : 'text-text-muted'
                 }`}
               >
                 <div className="mb-2">
                   <div
-                    className={`inline-flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+                    className={`inline-flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all ${
                       steps.indexOf(step) > i
-                        ? 'border-green-700 bg-green-700 text-white'
+                        ? 'border-accent bg-accent text-surface-dark'
                         : steps.indexOf(step) === i
-                        ? 'border-green-700 bg-green-700 text-white'
-                        : 'border-gray-300 bg-white text-gray-600'
+                        ? 'border-accent bg-accent text-surface-dark'
+                        : 'border-surface-border bg-surface-light text-text-muted'
                     }`}
                   >
                     {steps.indexOf(step) > i ? (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
+                      <CheckCircle className="w-5 h-5" />
                     ) : (
-                      i + 1
+                      <span className="font-mono text-sm">{i + 1}</span>
                     )}
                   </div>
                 </div>
@@ -101,15 +102,15 @@ export default function BookingPage() {
               </div>
             ))}
           </div>
-          <div className="relative h-1 bg-gray-200 rounded-full mx-8">
+          <div className="relative h-1 bg-surface-lighter rounded-full mx-8">
             <div
-              className="absolute h-1 bg-green-700 rounded-full transition-all duration-500"
+              className="absolute h-1 bg-accent rounded-full transition-all duration-500"
               style={{ width: `${(steps.indexOf(step) / (steps.length - 1)) * 100}%` }}
             />
           </div>
         </div>
 
-        <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+        <div key={step}>
           {step === 'details' && (
             <BookingForm
               rooms={rooms}
@@ -126,72 +127,75 @@ export default function BookingPage() {
             />
           )}
           {step === 'confirmation' && (
-            <motion.div
-              className="bg-white rounded-lg shadow p-8 text-center"
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-            >
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
+            <div className="card-dark p-8 md:p-12 text-center">
+              <div className="w-20 h-20 bg-accent-muted rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle className="w-10 h-10 text-accent" />
               </div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Booking Confirmed!</h2>
-              <p className="text-gray-600 mb-8">
+              <h2 className="text-3xl font-bold text-white mb-2">Booking Confirmed!</h2>
+              <p className="text-text-secondary mb-8">
                 A confirmation email has been sent to {String(bookingData?.guestEmail)}
               </p>
 
-              <div className="bg-gray-50 rounded-lg p-6 mb-6 text-left max-w-md mx-auto">
-                <p className="text-sm text-gray-500 mb-1">Booking Reference</p>
-                <p className="text-2xl font-mono font-bold text-green-700 mb-4">{String(bookingData?.bookingId || 'BK-XXXXXX')}</p>
+              <div className="bg-surface-lighter rounded-2xl p-6 mb-8 text-left max-w-md mx-auto border border-surface-border">
+                <p className="text-xs text-text-muted font-mono mb-1">Booking Reference</p>
+                <p className="text-2xl font-mono font-bold text-accent mb-4">
+                  {String(bookingData?.bookingId || 'BK-XXXXXX')}
+                </p>
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Guest</span>
-                    <span className="font-medium text-gray-900">{String(bookingData?.guestName)}</span>
+                    <span className="text-text-muted">Guest</span>
+                    <span className="font-medium text-white">{String(bookingData?.guestName)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Room</span>
-                    <span className="font-medium text-gray-900">{selectedRoomData?.name || String(bookingData?.roomId)}</span>
+                    <span className="text-text-muted">Room</span>
+                    <span className="font-medium text-white">
+                      {selectedRoomData?.name || String(bookingData?.roomId)}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Check-in</span>
-                    <span className="font-medium text-gray-900">{formatDate(Number(bookingData?.checkIn))}</span>
+                    <span className="text-text-muted">Check-in</span>
+                    <span className="font-medium text-white">
+                      {formatDate(Number(bookingData?.checkIn))}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Check-out</span>
-                    <span className="font-medium text-gray-900">{formatDate(Number(bookingData?.checkOut))}</span>
+                    <span className="text-text-muted">Check-out</span>
+                    <span className="font-medium text-white">
+                      {formatDate(Number(bookingData?.checkOut))}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Nights</span>
-                    <span className="font-medium text-gray-900">{String(bookingData?.nights)}</span>
+                    <span className="text-text-muted">Nights</span>
+                    <span className="font-medium text-white">
+                      {String(bookingData?.nights)}
+                    </span>
                   </div>
-                  <div className="flex justify-between border-t pt-3">
-                    <span className="font-semibold text-gray-900">Total</span>
-                    <span className="font-bold text-green-700">{formatCurrency(Number(bookingData?.totalPrice), 'TZS')}</span>
+                  <div className="flex justify-between border-t border-surface-border pt-3">
+                    <span className="font-semibold text-white">Total</span>
+                    <span className="font-bold text-accent">
+                      {formatCurrency(Number(bookingData?.totalPrice), 'TZS')}
+                    </span>
                   </div>
                 </div>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <a
-                  href="https://wa.me/255XXXXXXXXX"
+                  href="https://wa.me/255000000000"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center bg-green-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-800 transition"
+                  className="btn-primary"
                 >
                   Chat on WhatsApp
                 </a>
-                <Link
-                  href="/"
-                  className="inline-flex items-center justify-center border-2 border-green-700 text-green-700 px-6 py-3 rounded-lg font-semibold hover:bg-green-50 transition"
-                >
+                <Link href="/" className="btn-outline">
                   Back to Home
                 </Link>
               </div>
-            </motion.div>
+            </div>
           )}
-        </motion.div>
-      </div>
+        </div>
+      </Container>
     </div>
   );
 }

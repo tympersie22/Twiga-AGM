@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { motion } from 'framer-motion';
 import {
   LayoutDashboard,
   Calendar,
@@ -13,6 +12,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  Building2,
 } from 'lucide-react';
 
 const navItems = [
@@ -44,8 +44,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       >
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <Link href="/" className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">T</span>
+            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
+              <span className="text-gray-900 font-bold text-sm">T</span>
             </div>
             <div>
               <h1 className="text-white font-bold text-lg leading-tight">Twiga AGM</h1>
@@ -60,6 +60,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
         </div>
 
+        {/* Property selector */}
+        <div className="px-4 pt-4 pb-2">
+          <div className="flex items-center gap-2 px-3 py-2 bg-gray-700/50 rounded-lg border border-gray-600/50">
+            <Building2 className="w-4 h-4 text-accent" />
+            <select className="bg-transparent text-white text-sm flex-1 outline-none cursor-pointer">
+              <option value="twiga-residence">Twiga Residence</option>
+            </select>
+          </div>
+        </div>
+
         <nav className="p-4 space-y-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
@@ -70,11 +80,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 onClick={() => setSidebarOpen(false)}
                 className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
                   isActive
-                    ? 'bg-green-700/20 text-green-400 border border-green-700/30'
+                    ? 'bg-accent/15 text-accent border border-accent/20'
                     : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'
                 }`}
               >
-                <item.icon className={`w-5 h-5 ${isActive ? 'text-green-400' : ''}`} />
+                <item.icon className={`w-5 h-5 ${isActive ? 'text-accent' : ''}`} />
                 <span className="font-medium">{item.label}</span>
                 {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
               </Link>
@@ -84,8 +94,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-700">
           <div className="flex items-center space-x-3 px-4 py-3 text-gray-400">
-            <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
-              <span className="text-sm font-medium text-white">A</span>
+            <div className="w-8 h-8 bg-accent/20 rounded-full flex items-center justify-center">
+              <span className="text-sm font-medium text-accent">A</span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-white truncate">Admin</p>
@@ -112,14 +122,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
 
         {/* Page content */}
-        <motion.main
-          className="flex-1 p-6 lg:p-8 overflow-auto"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-        >
+        <main className="flex-1 p-6 lg:p-8 overflow-auto">
           {children}
-        </motion.main>
+        </main>
       </div>
     </div>
   );

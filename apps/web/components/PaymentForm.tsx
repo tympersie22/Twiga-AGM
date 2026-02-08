@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { formatCurrency } from '@twiga/shared/utils/formatting';
 import { paymentService } from '@/lib/payment-service';
 import type { TwigaRoom } from '@twiga/shared/types';
@@ -94,78 +93,81 @@ export default function PaymentForm({ booking, rooms, onSuccess, onBack }: Payme
     }
   };
 
-  return (
-    <motion.form
-      onSubmit={handlePaymentSubmit}
-      className="bg-white rounded-lg shadow p-8 space-y-6"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-    >
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Payment Method</h2>
+  const methods = [
+    { value: 'mobile_money' as const, label: 'Mobile Money (M-Pesa, Airtel Money, Tigo Pesa)', desc: '' },
+    { value: 'card' as const, label: 'Visa / Mastercard', desc: '' },
+    { value: 'pay_on_arrival' as const, label: 'Pay on Arrival', desc: 'Pay when you check in (subject to approval)' },
+  ];
 
-      <div className="bg-gray-50 rounded-lg p-6 mb-6">
-        <h3 className="font-semibold text-gray-900 mb-4">Booking Summary</h3>
+  return (
+    <form onSubmit={handlePaymentSubmit} className="card-dark p-8 space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-1">Payment Method</h2>
+        <p className="text-text-muted text-sm">Choose how you&apos;d like to pay.</p>
+      </div>
+
+      {/* Summary */}
+      <div className="bg-surface-lighter rounded-2xl p-6 border border-surface-border">
+        <h3 className="font-semibold text-white mb-4 text-sm font-mono">Booking Summary</h3>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-600">Room</span>
-            <span className="font-medium">{selectedRoom?.name}</span>
+            <span className="text-text-muted">Room</span>
+            <span className="font-medium text-white">{selectedRoom?.name}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Check-in</span>
-            <span className="font-medium">{new Date(Number(booking.checkIn)).toLocaleDateString()}</span>
+            <span className="text-text-muted">Check-in</span>
+            <span className="font-medium text-white">{new Date(Number(booking.checkIn)).toLocaleDateString()}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Check-out</span>
-            <span className="font-medium">{new Date(Number(booking.checkOut)).toLocaleDateString()}</span>
+            <span className="text-text-muted">Check-out</span>
+            <span className="font-medium text-white">{new Date(Number(booking.checkOut)).toLocaleDateString()}</span>
           </div>
-          <div className="flex justify-between border-t pt-2 mt-2">
-            <span className="text-gray-900 font-semibold">Total Stay Cost</span>
-            <span className="font-bold text-green-700">{formatCurrency(Number(booking.totalPrice), 'TZS')}</span>
+          <div className="flex justify-between border-t border-surface-border pt-2 mt-2">
+            <span className="text-white font-semibold">Total Stay Cost</span>
+            <span className="font-bold text-accent">{formatCurrency(Number(booking.totalPrice), 'TZS')}</span>
           </div>
-          <div className="flex justify-between bg-green-50 -mx-2 -mb-2 mt-4 p-2 rounded">
-            <span className="text-green-900 font-semibold">50% Deposit Due Now</span>
-            <span className="font-bold text-green-700">{formatCurrency(depositAmount, 'TZS')}</span>
+          <div className="flex justify-between bg-accent-muted -mx-2 -mb-2 mt-4 p-3 rounded-xl">
+            <span className="text-accent font-semibold text-xs">50% Deposit Due Now</span>
+            <span className="font-bold text-accent">{formatCurrency(depositAmount, 'TZS')}</span>
           </div>
         </div>
       </div>
 
-      <div className="space-y-4">
-        <label className="block text-sm font-medium text-gray-700 mb-3">Choose Payment Method</label>
-        {(['mobile_money', 'card', 'pay_on_arrival'] as const).map((method) => (
+      {/* Payment methods */}
+      <div className="space-y-3">
+        <label className="block text-xs text-text-muted font-mono mb-1">Choose Payment Method</label>
+        {methods.map((method) => (
           <label
-            key={method}
-            className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition ${
-              paymentMethod === method ? 'border-green-700 bg-green-50' : 'border-gray-200 hover:border-gray-300'
+            key={method.value}
+            className={`flex items-start p-4 border-2 rounded-xl cursor-pointer transition-all ${
+              paymentMethod === method.value
+                ? 'border-accent bg-accent-muted'
+                : 'border-surface-border bg-surface-lighter hover:border-surface-border/80'
             }`}
           >
             <input
               type="radio"
               name="paymentMethod"
-              value={method}
-              checked={paymentMethod === method}
-              onChange={() => setPaymentMethod(method)}
-              className="mt-1 mr-3"
+              value={method.value}
+              checked={paymentMethod === method.value}
+              onChange={() => setPaymentMethod(method.value)}
+              className="mt-1 mr-3 accent-accent"
             />
             <div className="flex-1">
-              <p className="font-semibold text-gray-900">
-                {method === 'mobile_money' && 'Mobile Money (M-Pesa, Airtel Money, Tigo Pesa)'}
-                {method === 'card' && 'Visa / Mastercard'}
-                {method === 'pay_on_arrival' && 'Pay on Arrival'}
-              </p>
-              <p className="text-sm text-gray-600">
-                {method === 'pay_on_arrival' && 'Pay when you check in (subject to approval)'}
-              </p>
+              <p className="font-semibold text-white text-sm">{method.label}</p>
+              {method.desc && <p className="text-xs text-text-muted mt-0.5">{method.desc}</p>}
             </div>
           </label>
         ))}
+
         {paymentMethod === 'mobile_money' && (
-          <div className="ml-6 space-y-4 pb-4">
+          <div className="ml-6 space-y-4 pb-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Provider</label>
+              <label className="block text-xs text-text-muted font-mono mb-2">Mobile Provider</label>
               <select
                 value={mobileProvider}
                 onChange={(e) => setMobileProvider(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-700"
+                className="input-dark"
               >
                 <option value="mtn">M-Pesa (MTN)</option>
                 <option value="airtel">Airtel Money</option>
@@ -173,40 +175,40 @@ export default function PaymentForm({ booking, rooms, onSuccess, onBack }: Payme
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+              <label className="block text-xs text-text-muted font-mono mb-2">Phone Number</label>
               <input
                 type="tel"
                 placeholder="+255..."
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-700"
+                className="input-dark"
               />
-              <p className="text-xs text-gray-500 mt-1">You will receive a payment prompt on your phone</p>
+              <p className="text-xs text-text-muted mt-1">You will receive a payment prompt on your phone</p>
             </div>
           </div>
         )}
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">{error}</div>
+        <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm">{error}</div>
       )}
 
-      <div className="flex gap-4 pt-6">
+      <div className="flex gap-4 pt-4">
         <button
           type="button"
           onClick={onBack}
-          className="flex-1 px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-900 hover:bg-gray-50 transition"
+          className="flex-1 btn-outline justify-center"
         >
           Back
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="flex-1 bg-green-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-800 transition disabled:opacity-50"
+          className="flex-1 btn-primary justify-center disabled:opacity-50"
         >
           {loading ? 'Processing...' : 'Proceed to Payment'}
         </button>
       </div>
-    </motion.form>
+    </form>
   );
 }

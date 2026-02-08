@@ -1,27 +1,39 @@
 import type { Metadata } from 'next';
-import { Poppins } from 'next/font/google';
+import { Inter, Space_Mono } from 'next/font/google';
 import './globals.css';
-import { Providers } from '@/components/Providers';
+import Navbar from '@/components/layout/Navbar';
+import Footer from '@/components/layout/Footer';
 
-const poppins = Poppins({
+const inter = Inter({
   subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-display',
+  weight: ['300', '400', '500', '600', '700', '800'],
+});
+
+const spaceMono = Space_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+  weight: ['400', '700'],
 });
 
 export const metadata: Metadata = {
-  title: 'Twiga Residence - Luxury Stays in Dar es Salaam',
-  description: 'Book your perfect stay at Twiga Residence. Luxury boutique accommodations with modern amenities.',
-  keywords: 'hotel, booking, dar es salaam, zanzibar, accommodation',
+  title: 'Twiga AGM | Premium Real Estate in Dar es Salaam',
+  description:
+    'Discover premium living at Twiga AGM. Luxury rooms, apartments, and properties in Dar es Salaam, Tanzania. Short-term stays, long-term rentals, and properties for sale.',
+  keywords:
+    'twiga agm, real estate, dar es salaam, tanzania, luxury accommodation, apartments, rooms, property',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable} ${spaceMono.variable}`}>
       <head>
-        <meta name="theme-color" content="#2d5f2e" />
+        <meta name="theme-color" content="#111111" />
       </head>
-      <body className={poppins.className}>
-        <Providers>{children}</Providers>
+      <body className="font-display antialiased">
+        <Navbar />
+        <main>{children}</main>
+        <Footer />
       </body>
     </html>
   );

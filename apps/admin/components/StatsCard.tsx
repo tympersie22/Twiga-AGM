@@ -1,6 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import type { LucideIcon } from 'lucide-react';
 
 interface StatsCardProps {
@@ -13,12 +12,7 @@ interface StatsCardProps {
 
 export default function StatsCard({ icon: Icon, label, value, loading, isMoney }: StatsCardProps) {
   return (
-    <motion.div
-      className="bg-gray-800 rounded-lg p-6 border border-gray-700"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ scale: 1.02 }}
-    >
+    <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 hover:border-accent/30 transition-all">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-gray-400 text-sm font-medium mb-1">{label}</p>
@@ -26,8 +20,10 @@ export default function StatsCard({ icon: Icon, label, value, loading, isMoney }
             {loading ? '...' : isMoney ? String(value) : value}
           </p>
         </div>
-        <Icon className="w-8 h-8 text-green-500" />
+        <div className="w-10 h-10 rounded-lg bg-accent/15 flex items-center justify-center">
+          <Icon className="w-5 h-5 text-accent" />
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
