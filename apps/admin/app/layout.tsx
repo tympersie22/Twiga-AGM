@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import AdminLayout from '@/components/AdminLayout';
+import { AuthProvider } from '@/lib/AuthContext';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -14,7 +15,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AdminLayout>{children}</AdminLayout>
+        <AuthProvider>
+          <AdminLayout>{children}</AdminLayout>
+        </AuthProvider>
       </body>
     </html>
   );

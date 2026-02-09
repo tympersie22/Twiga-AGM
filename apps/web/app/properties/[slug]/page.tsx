@@ -8,7 +8,6 @@ import {
   Wifi,
   Wind,
   Tv,
-  Bath,
   ChefHat,
   Columns3,
   Phone,
@@ -28,7 +27,6 @@ const amenityIcons: Record<string, React.ElementType> = {
   'Flat screen TV': Tv,
   Kitchen: ChefHat,
   Balcony: Columns3,
-  'En-suite': Bath,
 };
 
 export default function PropertyDetailPage() {
@@ -103,6 +101,11 @@ export default function PropertyDetailPage() {
 
         {/* Hero */}
         <div className="relative h-72 md:h-96 rounded-3xl overflow-hidden mb-12 bg-surface-light border border-surface-border">
+          <img
+            src="https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=1200&q=80"
+            alt={property.name}
+            className="w-full h-full object-cover"
+          />
           <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent" />
           <div className="gradient-overlay" />
 

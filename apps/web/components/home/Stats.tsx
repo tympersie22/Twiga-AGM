@@ -4,7 +4,7 @@ import Container from '@/components/ui/Container';
 
 const stats = [
   { value: '1', label: 'Property', suffix: '' },
-  { value: '9', label: 'Rooms & Suites', suffix: '' },
+  { value: '9', label: 'Rooms & Apartment', suffix: '' },
   { value: '100', label: 'Happy Guests', suffix: '+' },
   { value: '4.8', label: 'Guest Rating', suffix: '/5' },
 ];

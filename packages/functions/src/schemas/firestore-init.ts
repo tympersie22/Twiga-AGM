@@ -1,15 +1,15 @@
 import * as admin from 'firebase-admin';
 
 const rooms = [
-  { id: 'room-1', name: 'Standard Room 1', type: 'standard', maxGuests: 2, basePrice: 15000000, amenities: ['WiFi', 'AC', 'En-suite', 'Flat screen TV'], images: [], description: 'Comfortable standard room', bedroomCount: 1, bathroomCount: 1 },
-  { id: 'room-2', name: 'Standard Room 2', type: 'standard', maxGuests: 2, basePrice: 15000000, amenities: ['WiFi', 'AC', 'En-suite', 'Flat screen TV'], images: [], description: 'Comfortable standard room', bedroomCount: 1, bathroomCount: 1 },
-  { id: 'room-3', name: 'Standard Room 3', type: 'standard', maxGuests: 2, basePrice: 15000000, amenities: ['WiFi', 'AC', 'En-suite', 'Flat screen TV'], images: [], description: 'Comfortable standard room', bedroomCount: 1, bathroomCount: 1 },
-  { id: 'room-4', name: 'Standard Room 4', type: 'standard', maxGuests: 2, basePrice: 15000000, amenities: ['WiFi', 'AC', 'En-suite', 'Flat screen TV'], images: [], description: 'Comfortable standard room', bedroomCount: 1, bathroomCount: 1 },
-  { id: 'room-5', name: 'Standard Room 5', type: 'standard', maxGuests: 2, basePrice: 15000000, amenities: ['WiFi', 'AC', 'En-suite', 'Flat screen TV'], images: [], description: 'Comfortable standard room', bedroomCount: 1, bathroomCount: 1 },
-  { id: 'room-6', name: 'Standard Room 6', type: 'standard', maxGuests: 2, basePrice: 15000000, amenities: ['WiFi', 'AC', 'En-suite', 'Flat screen TV'], images: [], description: 'Comfortable standard room', bedroomCount: 1, bathroomCount: 1 },
-  { id: 'room-7', name: 'Standard Room 7', type: 'standard', maxGuests: 2, basePrice: 15000000, amenities: ['WiFi', 'AC', 'En-suite', 'Flat screen TV'], images: [], description: 'Comfortable standard room', bedroomCount: 1, bathroomCount: 1 },
-  { id: 'room-8', name: 'Standard Room 8', type: 'standard', maxGuests: 2, basePrice: 15000000, amenities: ['WiFi', 'AC', 'En-suite', 'Flat screen TV'], images: [], description: 'Comfortable standard room', bedroomCount: 1, bathroomCount: 1 },
-  { id: 'apartment-1', name: 'Luxury Apartment', type: 'apartment', maxGuests: 4, basePrice: 30000000, amenities: ['WiFi', 'AC', 'Kitchen', 'Living Room', 'Balcony'], images: [], description: 'Spacious luxury apartment', bedroomCount: 2, bathroomCount: 2 },
+  { id: 'room-1', name: 'Standard Room 1', type: 'standard', maxGuests: 2, basePrice: 15000000, amenities: ['WiFi', 'AC', 'Flat screen TV'], images: ['https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80'], description: 'Comfortable standard room with WiFi, AC, and flat screen TV.', bedroomCount: 1, bathroomCount: 1 },
+  { id: 'room-2', name: 'Standard Room 2', type: 'standard', maxGuests: 2, basePrice: 15000000, amenities: ['WiFi', 'AC', 'Flat screen TV'], images: ['https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800&q=80'], description: 'Comfortable standard room with WiFi, AC, and flat screen TV.', bedroomCount: 1, bathroomCount: 1 },
+  { id: 'room-3', name: 'Standard Room 3', type: 'standard', maxGuests: 2, basePrice: 15000000, amenities: ['WiFi', 'AC', 'Flat screen TV'], images: ['https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80'], description: 'Comfortable standard room with WiFi, AC, and flat screen TV.', bedroomCount: 1, bathroomCount: 1 },
+  { id: 'room-4', name: 'Standard Room 4', type: 'standard', maxGuests: 2, basePrice: 15000000, amenities: ['WiFi', 'AC', 'Flat screen TV'], images: ['https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80'], description: 'Comfortable standard room with WiFi, AC, and flat screen TV.', bedroomCount: 1, bathroomCount: 1 },
+  { id: 'room-5', name: 'Standard Room 5', type: 'standard', maxGuests: 2, basePrice: 15000000, amenities: ['WiFi', 'AC', 'Flat screen TV'], images: ['https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&q=80'], description: 'Comfortable standard room with WiFi, AC, and flat screen TV.', bedroomCount: 1, bathroomCount: 1 },
+  { id: 'room-6', name: 'Standard Room 6', type: 'standard', maxGuests: 2, basePrice: 15000000, amenities: ['WiFi', 'AC', 'Flat screen TV'], images: ['https://images.unsplash.com/photo-1564078516393-cf04bd966897?w=800&q=80'], description: 'Comfortable standard room with WiFi, AC, and flat screen TV.', bedroomCount: 1, bathroomCount: 1 },
+  { id: 'room-7', name: 'Standard Room 7', type: 'standard', maxGuests: 2, basePrice: 15000000, amenities: ['WiFi', 'AC', 'Flat screen TV'], images: ['https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=800&q=80'], description: 'Comfortable standard room with WiFi, AC, and flat screen TV.', bedroomCount: 1, bathroomCount: 1 },
+  { id: 'room-8', name: 'Standard Room 8', type: 'standard', maxGuests: 2, basePrice: 15000000, amenities: ['WiFi', 'AC', 'Flat screen TV'], images: ['https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?w=800&q=80'], description: 'Comfortable standard room with WiFi, AC, and flat screen TV.', bedroomCount: 1, bathroomCount: 1 },
+  { id: 'apartment-1', name: 'Cozy Apartment', type: 'apartment', maxGuests: 4, basePrice: 30000000, amenities: ['WiFi', 'AC', 'Kitchen', 'Balcony', 'Flat screen TV'], images: ['https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&q=80'], description: 'Cozy apartment with kitchen and private balcony.', bedroomCount: 1, bathroomCount: 1 },
 ];
 
 export async function initializeFirestoreSchema() {
@@ -37,7 +37,7 @@ export async function initializeFirestoreSchema() {
     name: 'Twiga Residence',
     slug: 'twiga-residence',
     type: 'boutique',
-    location: { address: 'Plot X, Street Y', city: 'Dar es Salaam', country: 'TZ', coordinates: { lat: -6.8, lng: 39.3 } },
+    location: { address: 'Zanzibar', city: 'Zanzibar', country: 'TZ', coordinates: { lat: -6.16, lng: 39.19 } },
     settings: {
       payments: {
         flutterwave: {

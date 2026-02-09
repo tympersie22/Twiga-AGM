@@ -26,7 +26,7 @@ const values = [
     icon: Target,
     title: 'Community',
     description:
-      'We contribute to Dar es Salaam\'s development by creating premium living spaces and meaningful employment.',
+      'We contribute to Zanzibar\'s development by creating premium living spaces and meaningful employment.',
   },
 ];
 
@@ -42,11 +42,11 @@ export default function AboutPage() {
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 max-w-3xl leading-tight">
             Building the Future of
             <br />
-            <span className="text-gradient">Real Estate in Tanzania</span>
+            <span className="text-gradient">Real Estate in Zanzibar</span>
           </h1>
           <p className="text-lg text-text-secondary max-w-2xl leading-relaxed">
             Twiga AGM is a forward-thinking real estate company dedicated to creating premium
-            living experiences in Dar es Salaam and beyond.
+            living experiences in Zanzibar and beyond.
           </p>
         </Container>
       </section>
@@ -63,12 +63,12 @@ export default function AboutPage() {
               <div className="space-y-4 text-text-secondary leading-relaxed">
                 <p>
                   Twiga AGM was founded with a clear vision: to provide premium, modern
-                  accommodation in Dar es Salaam that meets international standards while
-                  celebrating Tanzanian hospitality.
+                  accommodation in Zanzibar that meets international standards while
+                  celebrating Zanzibari hospitality.
                 </p>
                 <p>
                   Our flagship property, Twiga Residence, features 8 beautifully appointed
-                  standard rooms and 1 luxurious apartment complete with a full kitchen and
+                  standard rooms and 1 cozy apartment complete with a kitchen and
                   private balcony. Each space is designed with comfort, style, and functionality
                   in mind.
                 </p>
@@ -82,6 +82,11 @@ export default function AboutPage() {
             </div>
             <div className="relative">
               <div className="aspect-square rounded-3xl bg-surface-light border border-surface-border overflow-hidden">
+                <img
+                  src="https://images.unsplash.com/photo-1523805009345-7448845a9e53?w=800&q=80"
+                  alt="Zanzibar architecture"
+                  className="w-full h-full object-cover"
+                />
                 <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent" />
                 <div className="absolute bottom-8 left-8 right-8">
                   <div className="bg-surface-dark/80 backdrop-blur-sm rounded-2xl p-6 border border-surface-border">
@@ -146,7 +151,7 @@ export default function AboutPage() {
             <div className="grid md:grid-cols-3 gap-6">
               <div className="p-6 bg-surface-light rounded-2xl border border-surface-border">
                 <p className="text-2xl font-bold text-accent mb-2">New Buildings</p>
-                <p className="text-sm text-text-muted">More premium properties coming to Dar es Salaam</p>
+                <p className="text-sm text-text-muted">More premium properties coming to Zanzibar</p>
               </div>
               <div className="p-6 bg-surface-light rounded-2xl border border-surface-border">
                 <p className="text-2xl font-bold text-accent mb-2">Long-Term Rentals</p>
@@ -154,7 +159,7 @@ export default function AboutPage() {
               </div>
               <div className="p-6 bg-surface-light rounded-2xl border border-surface-border">
                 <p className="text-2xl font-bold text-accent mb-2">Apartments for Sale</p>
-                <p className="text-sm text-text-muted">Own premium real estate in Tanzania&apos;s capital</p>
+                <p className="text-sm text-text-muted">Own premium real estate in Zanzibar</p>
               </div>
             </div>
           </div>

@@ -17,11 +17,11 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Twiga AGM | Premium Real Estate in Dar es Salaam',
+  title: 'Twiga AGM | Premium Real Estate in Zanzibar',
   description:
-    'Discover premium living at Twiga AGM. Luxury rooms, apartments, and properties in Dar es Salaam, Tanzania. Short-term stays, long-term rentals, and properties for sale.',
+    'Discover premium living at Twiga AGM. Luxury rooms, apartments, and properties in Zanzibar. Short-term stays, long-term rentals, and properties for sale. Future is Now.',
   keywords:
-    'twiga agm, real estate, dar es salaam, tanzania, luxury accommodation, apartments, rooms, property',
+    'twiga agm, real estate, zanzibar, tanzania, luxury accommodation, apartments, rooms, property',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

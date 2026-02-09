@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   Users,
   Bed,
-  Bath,
   Wifi,
   Wind,
   Tv,
@@ -28,8 +27,6 @@ const amenityIcons: Record<string, React.ElementType> = {
   'Flat screen TV': Tv,
   Kitchen: ChefHat,
   Balcony: Columns3,
-  'En-suite': Bath,
-  'Living Room': Bed,
 };
 
 export default function RoomDetailPage() {
@@ -182,7 +179,7 @@ export default function RoomDetailPage() {
               {isApartment && (
                 <div className="mt-4 p-4 bg-accent-muted rounded-xl border border-accent/20">
                   <p className="text-accent font-medium text-sm">
-                    ★ This luxury apartment features a full kitchen and private balcony — perfect for extended stays and families.
+                    ★ This cozy apartment features a kitchen and private balcony — perfect for extended stays and families.
                   </p>
                 </div>
               )}

@@ -1,4 +1,4 @@
-export type RoomType = 'standard' | 'deluxe' | 'suite' | 'apartment';
+export type RoomType = 'standard' | 'deluxe' | 'apartment';
 
 export interface TwigaRoom {
   id: string;

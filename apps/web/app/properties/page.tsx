@@ -40,7 +40,7 @@ export default function PropertiesPage() {
             Explore Our Properties
           </h1>
           <p className="text-text-secondary max-w-2xl mx-auto">
-            Discover premium real estate in Dar es Salaam. From boutique residences to
+            Discover premium real estate in Zanzibar. From boutique residences to
             luxury apartments, find the perfect space.
           </p>
         </div>

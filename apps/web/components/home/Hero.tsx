@@ -6,9 +6,14 @@ import { ArrowRight, MapPin } from 'lucide-react';
 export default function Hero() {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background */}
+      {/* Background Image */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-surface-dark via-surface to-surface-light" />
+        <img
+          src="https://images.unsplash.com/photo-1586500036706-41963de24d8b?w=1920&q=80"
+          alt="Zanzibar coastline"
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-surface-dark/95 via-surface-dark/80 to-surface-dark/60" />
         {/* Decorative grid */}
         <div
           className="absolute inset-0 opacity-[0.03]"
@@ -36,8 +41,16 @@ export default function Hero() {
             Discover Premium
             <br />
             Living in{' '}
-            <span className="text-gradient">Dar es Salaam</span>
+            <span className="text-gradient">Zanzibar</span>
           </h1>
+
+          {/* Motto */}
+          <p
+            className="text-accent font-mono text-base md:text-lg tracking-widest uppercase mb-4 font-semibold"
+            style={{ textShadow: '0 0 20px rgba(201,169,110,0.4), 0 2px 4px rgba(0,0,0,0.5)' }}
+          >
+            &mdash; Future is Now &mdash;
+          </p>
 
           {/* Subtitle */}
           <p className="text-lg md:text-xl text-text-secondary max-w-xl mb-10 leading-relaxed">
@@ -59,9 +72,9 @@ export default function Hero() {
           {/* Location badge */}
           <div className="flex items-center gap-2 text-text-muted">
             <MapPin className="w-4 h-4 text-accent" />
-            <span className="text-sm">Dar es Salaam, Tanzania</span>
+            <span className="text-sm">Zanzibar, Tanzania</span>
             <span className="mx-2 text-surface-border">|</span>
-            <span className="text-sm">9 Rooms & Apartments</span>
+            <span className="text-sm">8 Rooms & 1 Apartment</span>
           </div>
         </div>
       </div>

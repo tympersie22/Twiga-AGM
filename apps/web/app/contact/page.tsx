@@ -27,7 +27,7 @@ const contactInfo = [
   {
     icon: MapPin,
     title: 'Address',
-    value: 'Dar es Salaam, Tanzania',
+    value: 'Zanzibar, Tanzania',
     href: '#',
   },
 ];

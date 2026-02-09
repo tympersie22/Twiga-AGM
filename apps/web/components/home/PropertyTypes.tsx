@@ -23,7 +23,7 @@ const types = [
     icon: Building,
     title: 'Apartments for Sale',
     description:
-      'Invest in premium real estate. Own a luxury apartment in Dar es Salaam with modern finishes and prime locations.',
+      'Invest in premium real estate. Own a luxury apartment in Zanzibar with modern finishes and prime locations.',
     features: ['Freehold ownership', 'Modern design', 'High ROI potential'],
   },
 ];

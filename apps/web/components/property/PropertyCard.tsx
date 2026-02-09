@@ -17,7 +17,11 @@ export default function PropertyCard({ property }: PropertyCardProps) {
     >
       {/* Image area */}
       <div className="relative h-64 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-surface-lighter to-surface-light" />
+        <img
+          src="https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=800&q=80"
+          alt={property.name}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+        />
         <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent group-hover:from-accent/10 transition-all duration-500" />
         <div className="gradient-overlay" />
 

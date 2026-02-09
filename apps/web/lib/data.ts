@@ -60,13 +60,13 @@ const MOCK_PROPERTY: PropertySummary = {
   slug: 'twiga-residence',
   type: 'boutique',
   location: {
-    address: 'Dar es Salaam',
-    city: 'Dar es Salaam',
+    address: 'Zanzibar',
+    city: 'Zanzibar',
     country: 'TZ',
   },
   description:
-    'Twiga Residence is a premium boutique property offering 8 beautifully appointed standard rooms and 1 luxurious apartment with a full kitchen and private balcony. Located in the heart of Dar es Salaam, it provides modern amenities, exceptional comfort, and a warm Tanzanian welcome.',
-  shortDescription: '8 standard rooms and 1 luxury apartment with full kitchen and private balcony.',
+    'Twiga Residence is a premium boutique property offering 8 beautifully appointed standard rooms and 1 cozy apartment with a kitchen and private balcony. Located in the heart of Zanzibar, it provides modern amenities, exceptional comfort, and a warm Zanzibari welcome.',
+  shortDescription: '8 standard rooms and 1 cozy apartment with kitchen and private balcony.',
   totalRooms: 9,
   priceFrom: 15000000,
 };
@@ -92,7 +92,7 @@ export async function fetchProperties(): Promise<PropertySummary[]> {
         name: data.name || docSnap.id,
         slug: data.slug || docSnap.id,
         type: data.type || 'boutique',
-        location: data.location || { address: '', city: 'Dar es Salaam', country: 'TZ' },
+        location: data.location || { address: '', city: 'Zanzibar', country: 'TZ' },
         description: data.description || MOCK_PROPERTY.description,
         shortDescription: data.shortDescription || MOCK_PROPERTY.shortDescription,
         totalRooms: rooms.length,

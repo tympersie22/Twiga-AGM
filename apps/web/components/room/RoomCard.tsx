@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Users, Wifi, Wind, Tv, ChefHat, Columns3, Bath, ArrowRight } from 'lucide-react';
+import { Users, Wifi, Wind, Tv, ChefHat, Columns3, ArrowRight } from 'lucide-react';
 import { formatCurrency } from '@twiga/shared/utils/formatting';
 import type { TwigaRoom } from '@twiga/shared/types';
 
@@ -11,7 +11,6 @@ const amenityIcons: Record<string, React.ElementType> = {
   'Flat screen TV': Tv,
   Kitchen: ChefHat,
   Balcony: Columns3,
-  'En-suite': Bath,
 };
 
 interface RoomCardProps {

@@ -33,7 +33,7 @@ export default function Footer() {
               </div>
             </Link>
             <p className="text-text-muted text-sm leading-relaxed mb-6">
-              Premium real estate in Dar es Salaam. Luxury rooms, apartments, and properties for
+              Premium real estate in Zanzibar. Luxury rooms, apartments, and properties for
               short-term stays, long-term rentals, and sale.
             </p>
             <div className="flex gap-4">
@@ -123,7 +123,7 @@ export default function Footer() {
               <li>
                 <div className="flex items-start gap-3 text-sm text-text-muted">
                   <MapPin className="w-4 h-4 text-accent mt-0.5" />
-                  Dar es Salaam, Tanzania
+                  Zanzibar, Tanzania
                 </div>
               </li>
             </ul>
@@ -136,7 +136,7 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} Twiga AGM. All rights reserved.
           </p>
           <p className="text-xs text-text-muted">
-            Premium Real Estate &middot; Dar es Salaam, Tanzania
+            Premium Real Estate &middot; Zanzibar, Tanzania
           </p>
         </div>
       </div>

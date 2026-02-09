@@ -9,7 +9,7 @@ const highlights = [
   {
     icon: Building2,
     title: 'Premium Properties',
-    desc: 'Carefully curated real estate in prime Dar es Salaam locations.',
+    desc: 'Carefully curated real estate in prime Zanzibar locations.',
   },
   {
     icon: Shield,
@@ -28,21 +28,26 @@ export default function AboutPreview() {
     <section className="py-24 md:py-32">
       <Container>
         <div className="grid lg:grid-cols-2 gap-16 items-center">
-          {/* Left — Image placeholder */}
+          {/* Left — Image */}
           <div className="relative">
             <div className="aspect-[4/5] rounded-3xl bg-surface-light border border-surface-border overflow-hidden">
+              <img
+                src="https://images.unsplash.com/photo-1540541338287-41700207dee6?w=800&q=80"
+                alt="Zanzibar building exterior"
+                className="w-full h-full object-cover"
+              />
               <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-8">
                 <div className="bg-surface-dark/80 backdrop-blur-sm rounded-2xl p-6 border border-surface-border">
-                  <p className="font-mono text-accent text-sm mb-1">Since 2020</p>
+                  <p className="font-mono text-accent text-sm mb-1">Future is Now</p>
                   <p className="text-white font-semibold">Building Premium Living Spaces</p>
                 </div>
               </div>
             </div>
             {/* Floating accent card */}
             <div className="absolute -top-4 -right-4 bg-accent rounded-2xl p-5 shadow-lg hidden lg:block">
-              <p className="text-surface-dark font-bold text-3xl">9+</p>
-              <p className="text-surface-dark/70 text-sm font-medium">Rooms & Suites</p>
+              <p className="text-surface-dark font-bold text-3xl">9</p>
+              <p className="text-surface-dark/70 text-sm font-medium">Rooms & Apartment</p>
             </div>
           </div>
 
@@ -52,12 +57,12 @@ export default function AboutPreview() {
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-6 leading-tight">
               Twiga AGM — Redefining
               <br />
-              Real Estate in Tanzania
+              Real Estate in Zanzibar
             </h2>
             <p className="text-text-secondary leading-relaxed mb-8">
-              Twiga AGM is a forward-thinking real estate company based in Dar es Salaam.
+              Twiga AGM is a forward-thinking real estate company based in Zanzibar.
               Our flagship property, Twiga Residence, offers 8 beautifully appointed rooms
-              and a luxurious apartment with full kitchen and private balcony. With more
+              and a cozy apartment with kitchen and private balcony. With more
               buildings on the horizon, we&apos;re expanding into long-term rentals and
               premium apartments for sale.
             </p>

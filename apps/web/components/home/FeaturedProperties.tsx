@@ -9,17 +9,17 @@ const properties = [
   {
     name: 'Twiga Residence',
     slug: 'twiga-residence',
-    location: 'Dar es Salaam, Tanzania',
+    location: 'Zanzibar, Tanzania',
     type: 'Boutique Residence',
     rooms: 9,
     priceFrom: 'TZS 150,000',
-    description: '8 standard rooms and 1 luxury apartment with full kitchen and private balcony.',
+    description: '8 standard rooms and 1 cozy apartment with kitchen and private balcony.',
     tags: ['Short Stay', 'Long Term'],
   },
   {
     name: 'Coming Soon',
     slug: '',
-    location: 'Dar es Salaam, Tanzania',
+    location: 'Zanzibar, Tanzania',
     type: 'New Development',
     rooms: 0,
     priceFrom: 'TBA',
@@ -56,7 +56,15 @@ export default function FeaturedProperties() {
             >
               {/* Image area */}
               <div className="relative h-64 md:h-72">
-                <div className="absolute inset-0 bg-gradient-to-br from-surface-lighter to-surface-light" />
+                {!property.comingSoon ? (
+                  <img
+                    src="https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=800&q=80"
+                    alt={property.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-surface-lighter to-surface-light" />
+                )}
                 {!property.comingSoon && (
                   <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent" />
                 )}

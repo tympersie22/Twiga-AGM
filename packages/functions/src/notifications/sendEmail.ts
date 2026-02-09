@@ -85,7 +85,7 @@ export async function sendBookingConfirmationEmail(data: {
           </div>
 
           <p style="color:#999;font-size:12px;text-align:center;margin-top:30px;">
-            Twiga Residence, Dar es Salaam, Tanzania<br>
+            Twiga Residence, Zanzibar, Tanzania<br>
             bookings@twiga-agm.com
           </p>
         </div>

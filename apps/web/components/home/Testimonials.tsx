@@ -15,11 +15,11 @@ const testimonials = [
     name: 'James K.',
     location: 'London, UK',
     rating: 5,
-    text: 'Best boutique accommodation in Dar es Salaam. The apartment with the balcony view was spectacular. Felt like a home away from home.',
+    text: 'Best boutique accommodation in Zanzibar. The apartment with the balcony view was spectacular. Felt like a home away from home.',
   },
   {
     name: 'Amina H.',
-    location: 'Dar es Salaam, TZ',
+    location: 'Zanzibar, TZ',
     rating: 5,
     text: 'We hosted family from abroad and they loved Twiga Residence. Clean, modern, and perfectly located. The kitchen in the apartment was a huge plus.',
   },

@@ -13,7 +13,9 @@ import {
   X,
   ChevronRight,
   Building2,
+  Loader2,
 } from 'lucide-react';
+import { useAuth } from '@/lib/AuthContext';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -25,9 +27,29 @@ const navItems = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, loading, signOut } = useAuth();
+
+  // Show login page without sidebar
+  if (pathname === '/login') {
+    return <>{children}</>;
+  }
+
+  // Show loading spinner while checking auth
+  if (loading) {
+    return (
+      <div className="h-screen bg-gray-900 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-accent animate-spin" />
+      </div>
+    );
+  }
+
+  // Redirect handled by AuthContext, but don't render layout if no user
+  if (!user) {
+    return null;
+  }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex">
+    <div className="h-screen bg-gray-900 flex overflow-hidden">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -38,7 +60,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-gray-800 border-r border-gray-700 transform transition-transform duration-200 lg:translate-x-0 ${
+        className={`fixed lg:relative inset-y-0 left-0 z-40 w-64 bg-gray-800 border-r border-gray-700 transform transition-transform duration-200 lg:translate-x-0 flex flex-col shrink-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -70,7 +92,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </div>
 
-        <nav className="p-4 space-y-1">
+        <nav className="p-4 space-y-1 flex-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return (
@@ -92,16 +114,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-700">
+        {/* User panel - pinned to bottom */}
+        <div className="p-4 border-t border-gray-700">
           <div className="flex items-center space-x-3 px-4 py-3 text-gray-400">
             <div className="w-8 h-8 bg-accent/20 rounded-full flex items-center justify-center">
-              <span className="text-sm font-medium text-accent">A</span>
+              <span className="text-sm font-medium text-accent">
+                {user?.email?.[0]?.toUpperCase() || 'A'}
+              </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">Admin</p>
-              <p className="text-xs text-gray-400 truncate">admin@twiga-agm.com</p>
+              <p className="text-sm font-medium text-white truncate">
+                {user?.displayName || 'Admin'}
+              </p>
+              <p className="text-xs text-gray-400 truncate">
+                {user?.email || 'admin@twiga-agm.com'}
+              </p>
             </div>
-            <button className="text-gray-400 hover:text-red-400 transition">
+            <button
+              onClick={signOut}
+              title="Sign out"
+              className="text-gray-400 hover:text-red-400 transition"
+            >
               <LogOut className="w-4 h-4" />
             </button>
           </div>
@@ -111,7 +144,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <header className="bg-gray-800 border-b border-gray-700 px-6 py-4 flex items-center lg:hidden">
+        <header className="bg-gray-800 border-b border-gray-700 px-6 py-4 flex items-center lg:hidden shrink-0">
           <button
             onClick={() => setSidebarOpen(true)}
             className="text-gray-400 hover:text-white mr-4"
