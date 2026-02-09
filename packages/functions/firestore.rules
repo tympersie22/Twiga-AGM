@@ -16,14 +16,21 @@ service cloud.firestore {
       allow write: if isAdmin(companyId);
       match /properties/{propertyId} {
         allow read: if true;
-        allow write: if isAdmin(companyId);
+        allow create: if true;
+        allow update, delete: if isAdmin(companyId);
+        match /rooms/{roomId} {
+          allow read: if true;
+          allow create: if true;
+          allow update, delete: if isAdmin(companyId);
+        }
         match /bookings/{bookingId} {
           allow read: if isAdmin(companyId) || isGuestEmail(resource.data.guestEmail);
           allow create: if true;
           allow update: if isAdmin(companyId) || isGuestEmail(resource.data.guestEmail);
           match /payments/{paymentId} {
             allow read: if isAdmin(companyId) || isGuestEmail(get(/databases/$(database)/documents/companies/$(companyId)/properties/$(propertyId)/bookings/$(bookingId)).data.guestEmail);
-            allow write: if isAdmin(companyId);
+            allow create: if true;
+            allow update, delete: if isAdmin(companyId);
           }
         }
         match /availability/{date} {

@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Filter, CreditCard, Smartphone, Wallet, Eye, X, DollarSign, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
-import { MOCK_PAYMENTS, MOCK_BOOKINGS } from '@twiga/shared';
 import { formatCurrency, formatDate, formatDateTime, formatPhoneNumber } from '@twiga/shared/utils/formatting';
-import type { TwigaPayment } from '@twiga/shared/types';
+import { fetchPayments, fetchBookings } from '@/lib/data';
+import type { TwigaPayment, TwigaBooking } from '@twiga/shared/types';
 
 const statusStyles: Record<string, string> = {
   confirmed: 'bg-green-500/20 text-green-400',
@@ -39,18 +39,32 @@ const methodIcons: Record<string, React.ElementType> = {
 
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<TwigaPayment[]>([]);
+  const [bookings, setBookings] = useState<TwigaBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedPayment, setSelectedPayment] = useState<TwigaPayment | null>(null);
 
   useEffect(() => {
-    setPayments(MOCK_PAYMENTS);
-    setLoading(false);
+    const loadData = async () => {
+      try {
+        const [paymentData, bookingData] = await Promise.all([
+          fetchPayments(),
+          fetchBookings(),
+        ]);
+        setPayments(paymentData);
+        setBookings(bookingData);
+      } catch {
+        // handled — will show empty state
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
   }, []);
 
   const filteredPayments = payments.filter((p) => {
-    const booking = MOCK_BOOKINGS.find((b) => b.id === p.bookingId);
+    const booking = bookings.find((b) => b.id === p.bookingId);
     const matchesSearch =
       p.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.bookingId.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -71,7 +85,7 @@ export default function PaymentsPage() {
     .reduce((acc, p) => acc + p.amount, 0);
 
   const getGuestName = (bookingId: string) => {
-    const booking = MOCK_BOOKINGS.find((b) => b.id === bookingId);
+    const booking = bookings.find((b) => b.id === bookingId);
     return booking?.guestName || 'Unknown';
   };
 
