@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { ChevronDown } from 'lucide-react';
 import type { TwigaRoom } from '@twiga/shared/types';
 import {
   validateBookingDates,
@@ -36,18 +38,20 @@ export default function BookingForm({ rooms, selectedRoomId, onSubmit }: Booking
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
-    if (!roomId) newErrors.roomId = 'Please select a room';
-    if (!checkIn) newErrors.checkIn = 'Please select check-in date';
-    if (!checkOut) newErrors.checkOut = 'Please select check-out date';
-    const dateValidation = validateBookingDates(
-      new Date(checkIn).getTime(),
-      new Date(checkOut).getTime()
-    );
-    if (!dateValidation.valid) newErrors.dates = dateValidation.error || '';
-    if (!guestName) newErrors.guestName = 'Please enter your name';
-    if (!guestEmail || !validateEmail(guestEmail)) newErrors.guestEmail = 'Please enter a valid email';
+    if (!roomId) newErrors.roomId = 'Select a room';
+    if (!checkIn) newErrors.checkIn = 'Required';
+    if (!checkOut) newErrors.checkOut = 'Required';
+    if (checkIn && checkOut) {
+      const dateValidation = validateBookingDates(
+        new Date(checkIn).getTime(),
+        new Date(checkOut).getTime()
+      );
+      if (!dateValidation.valid) newErrors.dates = dateValidation.error || '';
+    }
+    if (!guestName) newErrors.guestName = 'Required';
+    if (!guestEmail || !validateEmail(guestEmail)) newErrors.guestEmail = 'Valid email required';
     if (!guestPhone || !validateTanzanianPhone(guestPhone)) {
-      newErrors.guestPhone = 'Please enter a valid Tanzanian phone (+255...)';
+      newErrors.guestPhone = 'Valid +255 number required';
     }
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -75,149 +79,208 @@ export default function BookingForm({ rooms, selectedRoomId, onSubmit }: Booking
     }
   };
 
+  const fieldErr = (f: string) => errors[f] ? 'border-red-500/40' : 'border-surface-border/40';
+
   return (
-    <form onSubmit={handleSubmit} className="card-dark p-8 space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-white mb-1">Booking Details</h2>
-        <p className="text-text-muted text-sm">Fill in the details below to reserve your stay.</p>
-      </div>
-
-      <div>
-        <label className="block text-xs text-text-muted font-mono mb-2">Select Room *</label>
-        <select
-          value={roomId}
-          onChange={(e) => setRoomId(e.target.value)}
-          className={`input-dark ${errors.roomId ? 'border-red-500/50' : ''}`}
-        >
-          <option value="">Choose a room...</option>
-          {rooms.map((room) => (
-            <option key={room.id} value={room.id}>
-              {room.name} - {formatCurrency(room.basePrice, 'TZS')}/night
-            </option>
-          ))}
-        </select>
-        {errors.roomId && <p className="text-red-400 text-xs mt-1">{errors.roomId}</p>}
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs text-text-muted font-mono mb-2">Check In *</label>
-          <input
-            type="date"
-            value={checkIn}
-            onChange={(e) => setCheckIn(e.target.value)}
-            className={`input-dark ${errors.checkIn ? 'border-red-500/50' : ''}`}
-          />
-          {errors.checkIn && <p className="text-red-400 text-xs mt-1">{errors.checkIn}</p>}
+    <motion.form
+      onSubmit={handleSubmit}
+      className="space-y-4"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+    >
+      {/* Card 1 — Stay Details */}
+      <div className="bg-surface-light/60 backdrop-blur-2xl border border-surface-border/30 rounded-2xl overflow-hidden shadow-xl shadow-black/20">
+        <div className="px-5 pt-4 pb-2">
+          <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">Stay Details</p>
         </div>
-        <div>
-          <label className="block text-xs text-text-muted font-mono mb-2">Check Out *</label>
-          <input
-            type="date"
-            value={checkOut}
-            onChange={(e) => setCheckOut(e.target.value)}
-            className={`input-dark ${errors.checkOut ? 'border-red-500/50' : ''}`}
-          />
-          {errors.checkOut && <p className="text-red-400 text-xs mt-1">{errors.checkOut}</p>}
-        </div>
-      </div>
 
-      <div>
-        <label className="block text-xs text-text-muted font-mono mb-2">Number of Guests *</label>
-        <select
-          value={numberOfGuests}
-          onChange={(e) => setNumberOfGuests(e.target.value)}
-          className="input-dark"
-        >
-          {[1, 2, 3, 4, 5, 6].map((n) => (
-            <option key={n} value={n}>{n} {n === 1 ? 'Guest' : 'Guests'}</option>
-          ))}
-        </select>
-      </div>
+        {/* Apple-style grouped list */}
+        <div className="mx-4 mb-4 bg-surface-lighter/30 rounded-xl border border-surface-border/20 overflow-hidden divide-y divide-surface-border/15">
+          {/* Room */}
+          <div className="relative">
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <label className="text-sm text-text-muted shrink-0 w-20">Room</label>
+              <select
+                value={roomId}
+                onChange={(e) => setRoomId(e.target.value)}
+                className={`flex-1 bg-transparent text-right text-sm text-white appearance-none outline-none cursor-pointer pr-5 ${fieldErr('roomId')}`}
+              >
+                <option value="">Select...</option>
+                {rooms.map((room) => (
+                  <option key={room.id} value={room.id}>
+                    {room.name} — {formatCurrency(room.basePrice, 'TZS')}/night
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
+            </div>
+            {errors.roomId && <p className="text-red-400 text-xs px-4 pb-2">{errors.roomId}</p>}
+          </div>
 
-      <div className="border-t border-surface-border pt-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Your Information</h3>
-        <div className="space-y-4">
+          {/* Check In */}
           <div>
-            <label className="block text-xs text-text-muted font-mono mb-2">Full Name *</label>
-            <input
-              type="text"
-              value={guestName}
-              onChange={(e) => setGuestName(e.target.value)}
-              placeholder="Your full name"
-              className={`input-dark ${errors.guestName ? 'border-red-500/50' : ''}`}
-            />
-            {errors.guestName && <p className="text-red-400 text-xs mt-1">{errors.guestName}</p>}
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <label className="text-sm text-text-muted shrink-0 w-20">Check In</label>
+              <input
+                type="date"
+                value={checkIn}
+                onChange={(e) => setCheckIn(e.target.value)}
+                className="flex-1 bg-transparent text-right text-sm text-white outline-none"
+              />
+            </div>
+            {errors.checkIn && <p className="text-red-400 text-xs px-4 pb-2">{errors.checkIn}</p>}
           </div>
+
+          {/* Check Out */}
           <div>
-            <label className="block text-xs text-text-muted font-mono mb-2">Email *</label>
-            <input
-              type="email"
-              value={guestEmail}
-              onChange={(e) => setGuestEmail(e.target.value)}
-              placeholder="your@email.com"
-              className={`input-dark ${errors.guestEmail ? 'border-red-500/50' : ''}`}
-            />
-            {errors.guestEmail && <p className="text-red-400 text-xs mt-1">{errors.guestEmail}</p>}
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <label className="text-sm text-text-muted shrink-0 w-20">Check Out</label>
+              <input
+                type="date"
+                value={checkOut}
+                onChange={(e) => setCheckOut(e.target.value)}
+                className="flex-1 bg-transparent text-right text-sm text-white outline-none"
+              />
+            </div>
+            {errors.checkOut && <p className="text-red-400 text-xs px-4 pb-2">{errors.checkOut}</p>}
           </div>
-          <div>
-            <label className="block text-xs text-text-muted font-mono mb-2">Phone (Tanzanian) *</label>
-            <input
-              type="tel"
-              placeholder="+255..."
-              value={guestPhone}
-              onChange={(e) => setGuestPhone(e.target.value)}
-              className={`input-dark ${errors.guestPhone ? 'border-red-500/50' : ''}`}
-            />
-            {errors.guestPhone && <p className="text-red-400 text-xs mt-1">{errors.guestPhone}</p>}
-          </div>
-          <div>
-            <label className="block text-xs text-text-muted font-mono mb-2">Special Requests</label>
-            <textarea
-              value={specialRequests}
-              onChange={(e) => setSpecialRequests(e.target.value)}
-              rows={4}
-              className="input-dark resize-none"
-              placeholder="Any special requirements..."
-            />
+
+          {/* Guests */}
+          <div className="relative">
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <label className="text-sm text-text-muted shrink-0 w-20">Guests</label>
+              <select
+                value={numberOfGuests}
+                onChange={(e) => setNumberOfGuests(e.target.value)}
+                className="flex-1 bg-transparent text-right text-sm text-white appearance-none outline-none cursor-pointer pr-5"
+              >
+                {[1, 2, 3, 4, 5, 6].map((n) => (
+                  <option key={n} value={n}>{n} {n === 1 ? 'Guest' : 'Guests'}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
+            </div>
           </div>
         </div>
+
+        {errors.dates && (
+          <p className="text-red-400 text-xs mx-4 mb-3 bg-red-500/5 border border-red-500/10 rounded-lg px-3 py-2">{errors.dates}</p>
+        )}
       </div>
 
+      {/* Card 2 — Guest Info */}
+      <div className="bg-surface-light/60 backdrop-blur-2xl border border-surface-border/30 rounded-2xl overflow-hidden shadow-xl shadow-black/20">
+        <div className="px-5 pt-4 pb-2">
+          <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">Guest Information</p>
+        </div>
+
+        <div className="mx-4 mb-4 bg-surface-lighter/30 rounded-xl border border-surface-border/20 overflow-hidden divide-y divide-surface-border/15">
+          {/* Name */}
+          <div>
+            <div className="flex items-center px-4 py-2.5">
+              <label className="text-sm text-text-muted shrink-0 w-20">Name</label>
+              <input
+                type="text"
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value)}
+                placeholder="Full name"
+                className="flex-1 bg-transparent text-sm text-white placeholder-text-muted/40 outline-none text-right"
+              />
+            </div>
+            {errors.guestName && <p className="text-red-400 text-xs px-4 pb-2">{errors.guestName}</p>}
+          </div>
+
+          {/* Email */}
+          <div>
+            <div className="flex items-center px-4 py-2.5">
+              <label className="text-sm text-text-muted shrink-0 w-20">Email</label>
+              <input
+                type="email"
+                value={guestEmail}
+                onChange={(e) => setGuestEmail(e.target.value)}
+                placeholder="you@email.com"
+                className="flex-1 bg-transparent text-sm text-white placeholder-text-muted/40 outline-none text-right"
+              />
+            </div>
+            {errors.guestEmail && <p className="text-red-400 text-xs px-4 pb-2">{errors.guestEmail}</p>}
+          </div>
+
+          {/* Phone */}
+          <div>
+            <div className="flex items-center px-4 py-2.5">
+              <label className="text-sm text-text-muted shrink-0 w-20">Phone</label>
+              <input
+                type="tel"
+                value={guestPhone}
+                onChange={(e) => setGuestPhone(e.target.value)}
+                placeholder="+255 7XX XXX XXX"
+                className="flex-1 bg-transparent text-sm text-white placeholder-text-muted/40 outline-none text-right"
+              />
+            </div>
+            {errors.guestPhone && <p className="text-red-400 text-xs px-4 pb-2">{errors.guestPhone}</p>}
+          </div>
+
+          {/* Special Requests */}
+          <div>
+            <div className="flex items-start px-4 py-2.5">
+              <label className="text-sm text-text-muted shrink-0 w-20 pt-0.5">Notes</label>
+              <textarea
+                value={specialRequests}
+                onChange={(e) => setSpecialRequests(e.target.value)}
+                rows={2}
+                className="flex-1 bg-transparent text-sm text-white placeholder-text-muted/40 outline-none text-right resize-none"
+                placeholder="Special requests..."
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Price summary */}
       {selectedRoom && checkIn && checkOut && nights > 0 && (
-        <div className="bg-accent-muted rounded-2xl p-6 border border-accent/20">
-          <div className="space-y-2 mb-4">
-            <div className="flex justify-between">
-              <span className="text-text-secondary">{selectedRoom.name}</span>
-              <span className="font-medium text-white">{formatCurrency(selectedRoom.basePrice, 'TZS')}/night</span>
+        <motion.div
+          className="bg-surface-light/60 backdrop-blur-2xl border border-surface-border/30 rounded-2xl overflow-hidden shadow-xl shadow-black/20"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+        >
+          <div className="mx-4 my-4 bg-surface-lighter/30 rounded-xl border border-surface-border/20 overflow-hidden divide-y divide-surface-border/15">
+            <div className="flex justify-between items-center px-4 py-2.5">
+              <span className="text-sm text-text-muted">{selectedRoom.name}</span>
+              <span className="text-sm text-white">{formatCurrency(selectedRoom.basePrice, 'TZS')}/night</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-text-secondary">{nights} {nights === 1 ? 'night' : 'nights'}</span>
-              <span className="font-medium text-white">{formatCurrency(totalPrice, 'TZS')}</span>
+            <div className="flex justify-between items-center px-4 py-2.5">
+              <span className="text-sm text-text-muted">{nights} night{nights > 1 ? 's' : ''}</span>
+              <span className="text-sm text-white">{formatCurrency(totalPrice, 'TZS')}</span>
+            </div>
+            <div className="flex justify-between items-center px-4 py-3 bg-accent/5">
+              <span className="text-sm font-semibold text-white">Total</span>
+              <span className="text-lg font-bold text-accent">{formatCurrency(totalPrice, 'TZS')}</span>
             </div>
           </div>
-          <div className="border-t border-accent/20 pt-3 flex justify-between">
-            <span className="font-semibold text-white">Total</span>
-            <span className="text-2xl font-bold text-accent">{formatCurrency(totalPrice, 'TZS')}</span>
-          </div>
-          <p className="text-xs text-text-muted mt-2">* 50% deposit required to confirm booking</p>
-        </div>
+          <p className="text-xs text-text-muted text-center pb-3">50% deposit required to confirm</p>
+        </motion.div>
       )}
 
       {errors.submit && (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm">{errors.submit}</div>
-      )}
-      {errors.dates && (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm">{errors.dates}</div>
+        <p className="text-red-400 text-sm bg-red-500/5 border border-red-500/10 rounded-xl px-4 py-2.5">{errors.submit}</p>
       )}
 
       <button
         type="submit"
         disabled={loading}
-        className="btn-primary w-full justify-center disabled:opacity-50"
+        className="w-full bg-accent hover:bg-accent/90 text-surface-dark font-semibold py-3 rounded-xl transition-all disabled:opacity-50 active:scale-[0.98]"
       >
-        {loading ? 'Processing...' : 'Continue to Payment'}
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
+            <div className="w-4 h-4 border-2 border-surface-dark border-t-transparent rounded-full animate-spin" />
+            Processing...
+          </span>
+        ) : (
+          'Continue to Payment'
+        )}
       </button>
-    </form>
+    </motion.form>
   );
 }

@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   Users,
   Bed,
+  Bath,
   Wifi,
   Wind,
   Tv,

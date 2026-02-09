@@ -16,6 +16,7 @@ export interface TwigaBooking {
   roomId: string;
   checkIn: number;
   checkOut: number;
+  pickupTime?: string;
   numberOfGuests: number;
   totalNights: number;
   roomPrice: number;

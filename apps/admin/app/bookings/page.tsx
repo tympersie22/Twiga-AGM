@@ -1,8 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Search, Filter, Eye, X, Calendar, Mail, Phone, MapPin } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Search, Filter, Eye, X, Calendar, Mail, Phone, Clock,
+  Moon, MapPin, User, CreditCard, MessageSquare, AlertTriangle,
+  Plane, BedDouble, ChevronRight,
+} from 'lucide-react';
 import { fetchBookings, fetchRooms } from '@/lib/data';
 import { formatCurrency, formatDate, formatPhoneNumber } from '@twiga/shared/utils/formatting';
 import type { TwigaBooking, TwigaRoom } from '@twiga/shared/types';
@@ -13,6 +17,14 @@ const statusStyles: Record<string, string> = {
   pay_on_arrival: 'bg-blue-500/20 text-blue-400',
   completed: 'bg-gray-500/20 text-gray-300',
   cancelled: 'bg-red-500/20 text-red-400',
+};
+
+const statusDot: Record<string, string> = {
+  confirmed: 'bg-green-400',
+  pending_payment: 'bg-yellow-400',
+  pay_on_arrival: 'bg-blue-400',
+  completed: 'bg-gray-400',
+  cancelled: 'bg-red-400',
 };
 
 const statusLabels: Record<string, string> = {
@@ -52,6 +64,15 @@ export default function BookingsPage() {
     loadData();
   }, []);
 
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedBooking(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const filteredBookings = bookings.filter((b) => {
     const matchesSearch =
       b.guestName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -62,9 +83,19 @@ export default function BookingsPage() {
     return matchesSearch && matchesStatus;
   });
 
-  const roomName = (roomId: string) => {
+  const roomName = useCallback((roomId: string) => {
     const room = rooms.find((r) => r.id === roomId);
     return room?.name || roomId;
+  }, [rooms]);
+
+  const roomImage = useCallback((roomId: string) => {
+    const room = rooms.find((r) => r.id === roomId);
+    return room?.images?.[0] || '';
+  }, [rooms]);
+
+  const formatTime = (time?: string) => {
+    if (!time) return '—';
+    return time;
   };
 
   return (
@@ -83,7 +114,7 @@ export default function BookingsPage() {
             placeholder="Search by guest, email, booking ID, or room..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-accent focus:border-transparent transition"
           />
         </div>
         <div className="relative">
@@ -91,7 +122,7 @@ export default function BookingsPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-8 py-3 text-white appearance-none cursor-pointer focus:ring-2 focus:ring-green-500"
+            className="bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-8 py-3 text-white appearance-none cursor-pointer focus:ring-2 focus:ring-accent"
           >
             <option value="all">All Statuses</option>
             <option value="confirmed">Confirmed</option>
@@ -112,7 +143,7 @@ export default function BookingsPage() {
               key={status}
               onClick={() => setStatusFilter(status)}
               className={`bg-gray-800 border rounded-lg p-3 text-center transition ${
-                statusFilter === status ? 'border-green-500' : 'border-gray-700 hover:border-gray-600'
+                statusFilter === status ? 'border-accent' : 'border-gray-700 hover:border-gray-600'
               }`}
             >
               <p className="text-2xl font-bold text-white">{count}</p>
@@ -145,12 +176,12 @@ export default function BookingsPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-800/50 border-b border-gray-700">
                 <tr>
-                  <th className="text-left py-4 px-4 font-semibold text-gray-400">Booking ID</th>
                   <th className="text-left py-4 px-4 font-semibold text-gray-400">Guest</th>
                   <th className="text-left py-4 px-4 font-semibold text-gray-400">Room</th>
                   <th className="text-left py-4 px-4 font-semibold text-gray-400">Check In</th>
+                  <th className="text-left py-4 px-4 font-semibold text-gray-400">Pick Up</th>
                   <th className="text-left py-4 px-4 font-semibold text-gray-400">Check Out</th>
-                  <th className="text-left py-4 px-4 font-semibold text-gray-400">Source</th>
+                  <th className="text-left py-4 px-4 font-semibold text-gray-400">Nights</th>
                   <th className="text-left py-4 px-4 font-semibold text-gray-400">Amount</th>
                   <th className="text-left py-4 px-4 font-semibold text-gray-400">Status</th>
                   <th className="text-left py-4 px-4 font-semibold text-gray-400"></th>
@@ -158,35 +189,46 @@ export default function BookingsPage() {
               </thead>
               <tbody>
                 {filteredBookings.map((booking) => (
-                  <tr key={booking.id} className="border-b border-gray-700/50 hover:bg-gray-700/20 transition">
-                    <td className="py-4 px-4 font-mono text-green-400 text-xs">{booking.id}</td>
+                  <motion.tr
+                    key={booking.id}
+                    className="border-b border-gray-700/50 hover:bg-gray-700/20 transition cursor-pointer group"
+                    onClick={() => setSelectedBooking(booking)}
+                    whileHover={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
+                  >
                     <td className="py-4 px-4">
                       <p className="text-white font-medium">{booking.guestName}</p>
-                      <p className="text-gray-400 text-xs">{booking.guestEmail}</p>
+                      <p className="text-gray-500 text-xs font-mono">{booking.id}</p>
                     </td>
                     <td className="py-4 px-4 text-gray-300">{roomName(booking.roomId)}</td>
-                    <td className="py-4 px-4 text-gray-300">{formatDate(booking.checkIn)}</td>
-                    <td className="py-4 px-4 text-gray-300">{formatDate(booking.checkOut)}</td>
                     <td className="py-4 px-4">
-                      <span className="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300">
-                        {sourceLabels[booking.source] || booking.source}
-                      </span>
+                      <p className="text-gray-300">{formatDate(booking.checkIn)}</p>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-1.5 text-gray-300">
+                        <Clock className="w-3.5 h-3.5 text-gray-500" />
+                        <span>{formatTime(booking.pickupTime)}</span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <p className="text-gray-300">{formatDate(booking.checkOut)}</p>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-1.5">
+                        <Moon className="w-3.5 h-3.5 text-gray-500" />
+                        <span className="text-white font-medium">{booking.totalNights}</span>
+                      </div>
                     </td>
                     <td className="py-4 px-4 font-semibold text-white">{formatCurrency(booking.totalPrice, 'TZS')}</td>
                     <td className="py-4 px-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusStyles[booking.status] || 'bg-gray-500/20 text-gray-400'}`}>
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${statusStyles[booking.status] || 'bg-gray-500/20 text-gray-400'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${statusDot[booking.status] || 'bg-gray-400'}`} />
                         {statusLabels[booking.status] || booking.status}
                       </span>
                     </td>
                     <td className="py-4 px-4">
-                      <button
-                        onClick={() => setSelectedBooking(booking)}
-                        className="text-gray-400 hover:text-green-400 transition"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
+                      <ChevronRight className="w-4 h-4 text-gray-600 group-hover:text-accent transition" />
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))}
               </tbody>
             </table>
@@ -194,118 +236,252 @@ export default function BookingsPage() {
         )}
       </motion.div>
 
-      {/* Booking Detail Modal */}
-      {selectedBooking && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setSelectedBooking(null)}>
+      {/* macOS-style Booking Detail Modal */}
+      <AnimatePresence>
+        {selectedBooking && (
           <motion.div
-            className="bg-gray-800 rounded-xl border border-gray-700 max-w-lg w-full max-h-[90vh] overflow-y-auto"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
           >
-            <div className="flex items-center justify-between p-6 border-b border-gray-700">
-              <div>
-                <h3 className="text-xl font-bold text-white">Booking Details</h3>
-                <p className="text-sm font-mono text-green-400">{selectedBooking.id}</p>
-              </div>
-              <button onClick={() => setSelectedBooking(null)} className="text-gray-400 hover:text-white transition">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6 space-y-6">
-              {/* Status */}
-              <div className="flex items-center justify-between">
-                <span className={`px-4 py-2 rounded-full text-sm font-medium ${statusStyles[selectedBooking.status]}`}>
-                  {statusLabels[selectedBooking.status]}
-                </span>
-                <span className="text-xs bg-gray-700 px-3 py-1 rounded text-gray-300">
-                  {sourceLabels[selectedBooking.source]}
-                </span>
-              </div>
+            {/* Backdrop blur */}
+            <motion.div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedBooking(null)}
+            />
 
-              {/* Guest info */}
-              <div className="bg-gray-700/30 rounded-lg p-4 space-y-3">
-                <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Guest Information</h4>
-                <div className="space-y-2">
-                  <p className="text-white font-medium text-lg">{selectedBooking.guestName}</p>
-                  <div className="flex items-center space-x-2 text-gray-300 text-sm">
-                    <Mail className="w-4 h-4" />
-                    <span>{selectedBooking.guestEmail}</span>
+            {/* Modal */}
+            <motion.div
+              className="relative bg-gray-800/95 backdrop-blur-xl rounded-2xl border border-gray-600/50 max-w-2xl w-full max-h-[85vh] overflow-hidden shadow-2xl shadow-black/50"
+              initial={{ opacity: 0, scale: 0.85, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.85, y: 30 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Room image header */}
+              {roomImage(selectedBooking.roomId) && (
+                <div className="relative h-48 overflow-hidden">
+                  <img
+                    src={roomImage(selectedBooking.roomId)}
+                    alt={roomName(selectedBooking.roomId)}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-gray-800/95 via-gray-800/40 to-transparent" />
+                  <div className="absolute bottom-4 left-6 right-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-white/70 text-xs font-mono mb-1">{selectedBooking.id}</p>
+                        <h3 className="text-2xl font-bold text-white">{selectedBooking.guestName}</h3>
+                      </div>
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-md ${statusStyles[selectedBooking.status]}`}>
+                        <span className={`w-2 h-2 rounded-full ${statusDot[selectedBooking.status]} animate-pulse`} />
+                        {statusLabels[selectedBooking.status]}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2 text-gray-300 text-sm">
-                    <Phone className="w-4 h-4" />
-                    <span>{formatPhoneNumber(selectedBooking.guestPhone)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Stay details */}
-              <div className="bg-gray-700/30 rounded-lg p-4 space-y-3">
-                <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Stay Details</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-400">Room</p>
-                    <p className="text-white font-medium">{roomName(selectedBooking.roomId)}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">Guests</p>
-                    <p className="text-white font-medium">{selectedBooking.numberOfGuests}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">Check-in</p>
-                    <p className="text-white font-medium">{formatDate(selectedBooking.checkIn)}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">Check-out</p>
-                    <p className="text-white font-medium">{formatDate(selectedBooking.checkOut)}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">Nights</p>
-                    <p className="text-white font-medium">{selectedBooking.totalNights}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">Created</p>
-                    <p className="text-white font-medium">{formatDate(selectedBooking.createdAt)}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Pricing */}
-              <div className="bg-gray-700/30 rounded-lg p-4 space-y-3">
-                <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Pricing</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Room rate</span>
-                    <span className="text-white">{formatCurrency(selectedBooking.roomPrice, 'TZS')}/night</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">{selectedBooking.totalNights} night(s)</span>
-                    <span className="text-white">{formatCurrency(selectedBooking.totalPrice, 'TZS')}</span>
-                  </div>
-                  <div className="flex justify-between border-t border-gray-600 pt-2">
-                    <span className="text-white font-semibold">Total</span>
-                    <span className="text-green-400 font-bold text-lg">{formatCurrency(selectedBooking.totalPrice, 'TZS')}</span>
-                  </div>
-                </div>
-              </div>
-
-              {selectedBooking.specialRequests && (
-                <div className="bg-gray-700/30 rounded-lg p-4">
-                  <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">Special Requests</h4>
-                  <p className="text-gray-300 text-sm">{selectedBooking.specialRequests}</p>
+                  {/* Close button */}
+                  <button
+                    onClick={() => setSelectedBooking(null)}
+                    className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white/80 hover:text-white hover:bg-black/60 transition"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
               )}
 
-              {selectedBooking.cancelReason && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
-                  <h4 className="text-sm font-semibold text-red-400 mb-1">Cancellation Reason</h4>
-                  <p className="text-gray-300 text-sm">{selectedBooking.cancelReason}</p>
+              {/* No image fallback header */}
+              {!roomImage(selectedBooking.roomId) && (
+                <div className="flex items-center justify-between p-6 border-b border-gray-700/50">
+                  <div>
+                    <p className="text-white/50 text-xs font-mono mb-1">{selectedBooking.id}</p>
+                    <h3 className="text-xl font-bold text-white">{selectedBooking.guestName}</h3>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${statusStyles[selectedBooking.status]}`}>
+                      <span className={`w-2 h-2 rounded-full ${statusDot[selectedBooking.status]}`} />
+                      {statusLabels[selectedBooking.status]}
+                    </span>
+                    <button onClick={() => setSelectedBooking(null)} className="text-gray-400 hover:text-white transition">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
               )}
-            </div>
+
+              {/* Scrollable content */}
+              <div className="overflow-y-auto max-h-[calc(85vh-12rem)] p-6 space-y-5">
+
+                {/* Quick info cards row */}
+                <div className="grid grid-cols-4 gap-3">
+                  <motion.div
+                    className="bg-gray-700/30 rounded-xl p-3 text-center border border-gray-700/50"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <Calendar className="w-4 h-4 text-accent mx-auto mb-1" />
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Check In</p>
+                    <p className="text-white text-xs font-semibold mt-0.5">{formatDate(selectedBooking.checkIn)}</p>
+                  </motion.div>
+                  <motion.div
+                    className="bg-gray-700/30 rounded-xl p-3 text-center border border-gray-700/50"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                  >
+                    <Plane className="w-4 h-4 text-blue-400 mx-auto mb-1" />
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Pick Up</p>
+                    <p className="text-white text-xs font-semibold mt-0.5">{formatTime(selectedBooking.pickupTime)}</p>
+                  </motion.div>
+                  <motion.div
+                    className="bg-gray-700/30 rounded-xl p-3 text-center border border-gray-700/50"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    <Calendar className="w-4 h-4 text-red-400 mx-auto mb-1" />
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Check Out</p>
+                    <p className="text-white text-xs font-semibold mt-0.5">{formatDate(selectedBooking.checkOut)}</p>
+                  </motion.div>
+                  <motion.div
+                    className="bg-gray-700/30 rounded-xl p-3 text-center border border-gray-700/50"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25 }}
+                  >
+                    <Moon className="w-4 h-4 text-purple-400 mx-auto mb-1" />
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Nights</p>
+                    <p className="text-white text-xs font-semibold mt-0.5">{selectedBooking.totalNights}</p>
+                  </motion.div>
+                </div>
+
+                {/* Guest info */}
+                <motion.div
+                  className="bg-gray-700/20 rounded-xl p-4 border border-gray-700/40"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <h4 className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <User className="w-3.5 h-3.5" />
+                    Guest Information
+                  </h4>
+                  <div className="space-y-2.5">
+                    <div className="flex items-center space-x-3 text-sm">
+                      <Mail className="w-4 h-4 text-gray-500 shrink-0" />
+                      <span className="text-gray-300">{selectedBooking.guestEmail}</span>
+                    </div>
+                    <div className="flex items-center space-x-3 text-sm">
+                      <Phone className="w-4 h-4 text-gray-500 shrink-0" />
+                      <span className="text-gray-300">{formatPhoneNumber(selectedBooking.guestPhone)}</span>
+                    </div>
+                    <div className="flex items-center space-x-3 text-sm">
+                      <User className="w-4 h-4 text-gray-500 shrink-0" />
+                      <span className="text-gray-300">{selectedBooking.numberOfGuests} guest{selectedBooking.numberOfGuests > 1 ? 's' : ''}</span>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Stay details */}
+                <motion.div
+                  className="bg-gray-700/20 rounded-xl p-4 border border-gray-700/40"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.35 }}
+                >
+                  <h4 className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <BedDouble className="w-3.5 h-3.5" />
+                    Stay Details
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-500 text-xs">Room</p>
+                      <p className="text-white font-medium">{roomName(selectedBooking.roomId)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 text-xs">Source</p>
+                      <p className="text-white font-medium">{sourceLabels[selectedBooking.source]}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 text-xs">Booked On</p>
+                      <p className="text-white font-medium">{formatDate(selectedBooking.createdAt)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 text-xs">Payment ID</p>
+                      <p className="text-white font-mono text-xs">{selectedBooking.paymentId}</p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Pricing */}
+                <motion.div
+                  className="bg-gray-700/20 rounded-xl p-4 border border-gray-700/40"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  <h4 className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <CreditCard className="w-3.5 h-3.5" />
+                    Pricing
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Room rate</span>
+                      <span className="text-gray-300">{formatCurrency(selectedBooking.roomPrice, 'TZS')}/night</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">{selectedBooking.totalNights} night{selectedBooking.totalNights > 1 ? 's' : ''}</span>
+                      <span className="text-gray-300">{formatCurrency(selectedBooking.totalPrice, 'TZS')}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-gray-600/50 pt-2 mt-2">
+                      <span className="text-white font-semibold">Total</span>
+                      <span className="text-accent font-bold text-lg">{formatCurrency(selectedBooking.totalPrice, 'TZS')}</span>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Special Requests */}
+                {selectedBooking.specialRequests && (
+                  <motion.div
+                    className="bg-gray-700/20 rounded-xl p-4 border border-gray-700/40"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.45 }}
+                  >
+                    <h4 className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      Special Requests
+                    </h4>
+                    <p className="text-gray-300 text-sm">{selectedBooking.specialRequests}</p>
+                  </motion.div>
+                )}
+
+                {/* Cancellation */}
+                {selectedBooking.cancelReason && (
+                  <motion.div
+                    className="bg-red-500/5 rounded-xl p-4 border border-red-500/20"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.45 }}
+                  >
+                    <h4 className="text-[11px] font-semibold text-red-400/80 uppercase tracking-widest mb-2 flex items-center gap-2">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      Cancellation Reason
+                    </h4>
+                    <p className="text-gray-300 text-sm">{selectedBooking.cancelReason}</p>
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
           </motion.div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 }

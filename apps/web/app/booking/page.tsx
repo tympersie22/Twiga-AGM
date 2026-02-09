@@ -3,15 +3,22 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import BookingForm from '@/components/BookingForm';
 import PaymentForm from '@/components/PaymentForm';
 import Container from '@/components/ui/Container';
 import type { TwigaRoom } from '@twiga/shared/types';
 import { formatCurrency, formatDate } from '@twiga/shared/utils/formatting';
 import { fetchRooms } from '@/lib/data';
-import { ArrowLeft, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Check, ClipboardList, CreditCard, PartyPopper, Copy } from 'lucide-react';
 
 type BookingStep = 'details' | 'payment' | 'confirmation';
+
+const stepMeta = [
+  { key: 'details', label: 'Details', icon: ClipboardList },
+  { key: 'payment', label: 'Payment', icon: CreditCard },
+  { key: 'confirmation', label: 'Confirmed', icon: PartyPopper },
+] as const;
 
 export default function BookingPage() {
   const searchParams = useSearchParams();
@@ -20,6 +27,7 @@ export default function BookingPage() {
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
   const [bookingData, setBookingData] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const loadRooms = async () => {
@@ -40,161 +48,210 @@ export default function BookingPage() {
   const handleDetailsSubmit = (data: Record<string, unknown>) => {
     setBookingData(data);
     setStep('payment');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handlePaymentSuccess = () => {
     setStep('confirmation');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const copyBookingId = () => {
+    const id = String(bookingData?.bookingId || 'BK-XXXXXX');
+    navigator.clipboard.writeText(id);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   if (loading) {
     return (
       <div className="min-h-screen pt-28 pb-20 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-text-muted">Loading booking...</p>
+          <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-text-muted text-sm">Loading...</p>
         </div>
       </div>
     );
   }
 
   const selectedRoomData = bookingData ? rooms.find((r) => r.id === bookingData.roomId) : null;
-  const steps = ['details', 'payment', 'confirmation'] as const;
+  const currentStepIndex = stepMeta.findIndex((s) => s.key === step);
 
   return (
     <div className="min-h-screen pt-28 pb-20">
-      <Container className="max-w-4xl">
+      <Container className="max-w-lg">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-text-muted hover:text-accent transition-colors mb-8"
+          className="inline-flex items-center gap-1.5 text-text-muted hover:text-accent transition-colors mb-6 text-sm"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Home
+          Back
         </Link>
 
-        {/* Progress bar */}
-        <div className="mb-12">
-          <div className="flex justify-between mb-4">
-            {steps.map((s, i) => (
-              <div
-                key={s}
-                className={`flex-1 text-center ${
-                  steps.indexOf(step) >= i ? 'text-accent' : 'text-text-muted'
-                }`}
-              >
-                <div className="mb-2">
-                  <div
-                    className={`inline-flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all ${
-                      steps.indexOf(step) > i
-                        ? 'border-accent bg-accent text-surface-dark'
-                        : steps.indexOf(step) === i
-                        ? 'border-accent bg-accent text-surface-dark'
-                        : 'border-surface-border bg-surface-light text-text-muted'
-                    }`}
-                  >
-                    {steps.indexOf(step) > i ? (
-                      <CheckCircle className="w-5 h-5" />
-                    ) : (
-                      <span className="font-mono text-sm">{i + 1}</span>
-                    )}
-                  </div>
+        {/* Apple-style stepper — minimal dots + label */}
+        <div className="flex items-center justify-center gap-3 mb-8">
+          {stepMeta.map((s, i) => (
+            <div key={s.key} className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    currentStepIndex > i
+                      ? 'bg-accent text-surface-dark'
+                      : currentStepIndex === i
+                      ? 'bg-accent text-surface-dark shadow-md shadow-accent/25'
+                      : 'bg-surface-lighter/60 text-text-muted'
+                  }`}
+                >
+                  {currentStepIndex > i ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <s.icon className="w-4 h-4" />
+                  )}
                 </div>
-                <p className="text-sm font-medium capitalize">{s}</p>
+                <span className={`text-sm font-medium ${
+                  currentStepIndex >= i ? 'text-white' : 'text-text-muted/60'
+                }`}>
+                  {s.label}
+                </span>
               </div>
-            ))}
-          </div>
-          <div className="relative h-1 bg-surface-lighter rounded-full mx-8">
-            <div
-              className="absolute h-1 bg-accent rounded-full transition-all duration-500"
-              style={{ width: `${(steps.indexOf(step) / (steps.length - 1)) * 100}%` }}
-            />
-          </div>
+              {i < stepMeta.length - 1 && (
+                <div className={`w-10 h-px transition-all duration-500 ${
+                  currentStepIndex > i ? 'bg-accent' : 'bg-surface-border/30'
+                }`} />
+              )}
+            </div>
+          ))}
         </div>
 
-        <div key={step}>
+        {/* Step content */}
+        <AnimatePresence mode="wait">
           {step === 'details' && (
-            <BookingForm
-              rooms={rooms}
-              selectedRoomId={selectedRoom}
-              onSubmit={handleDetailsSubmit}
-            />
+            <motion.div
+              key="details"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+            >
+              <BookingForm
+                rooms={rooms}
+                selectedRoomId={selectedRoom}
+                onSubmit={handleDetailsSubmit}
+              />
+            </motion.div>
           )}
           {step === 'payment' && bookingData && (
-            <PaymentForm
-              booking={bookingData}
-              rooms={rooms}
-              onSuccess={handlePaymentSuccess}
-              onBack={() => setStep('details')}
-            />
+            <motion.div
+              key="payment"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+            >
+              <PaymentForm
+                booking={bookingData}
+                rooms={rooms}
+                onSuccess={handlePaymentSuccess}
+                onBack={() => { setStep('details'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              />
+            </motion.div>
           )}
           {step === 'confirmation' && (
-            <div className="card-dark p-8 md:p-12 text-center">
-              <div className="w-20 h-20 bg-accent-muted rounded-full flex items-center justify-center mx-auto mb-6">
-                <CheckCircle className="w-10 h-10 text-accent" />
-              </div>
-              <h2 className="text-3xl font-bold text-white mb-2">Booking Confirmed!</h2>
-              <p className="text-text-secondary mb-8">
-                A confirmation email has been sent to {String(bookingData?.guestEmail)}
-              </p>
-
-              <div className="bg-surface-lighter rounded-2xl p-6 mb-8 text-left max-w-md mx-auto border border-surface-border">
-                <p className="text-xs text-text-muted font-mono mb-1">Booking Reference</p>
-                <p className="text-2xl font-mono font-bold text-accent mb-4">
-                  {String(bookingData?.bookingId || 'BK-XXXXXX')}
-                </p>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-text-muted">Guest</span>
-                    <span className="font-medium text-white">{String(bookingData?.guestName)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-text-muted">Room</span>
-                    <span className="font-medium text-white">
-                      {selectedRoomData?.name || String(bookingData?.roomId)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-text-muted">Check-in</span>
-                    <span className="font-medium text-white">
-                      {formatDate(Number(bookingData?.checkIn))}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-text-muted">Check-out</span>
-                    <span className="font-medium text-white">
-                      {formatDate(Number(bookingData?.checkOut))}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-text-muted">Nights</span>
-                    <span className="font-medium text-white">
-                      {String(bookingData?.nights)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between border-t border-surface-border pt-3">
-                    <span className="font-semibold text-white">Total</span>
-                    <span className="font-bold text-accent">
-                      {formatCurrency(Number(bookingData?.totalPrice), 'TZS')}
-                    </span>
-                  </div>
+            <motion.div
+              key="confirmation"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 350 }}
+            >
+              <div className="bg-surface-light/60 backdrop-blur-2xl border border-surface-border/30 rounded-2xl overflow-hidden shadow-2xl shadow-black/30">
+                {/* Success header */}
+                <div className="px-6 pt-8 pb-5 text-center">
+                  <motion.div
+                    className="w-14 h-14 bg-green-500/15 rounded-full flex items-center justify-center mx-auto mb-4"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', damping: 12, stiffness: 200, delay: 0.15 }}
+                  >
+                    <Check className="w-7 h-7 text-green-400" />
+                  </motion.div>
+                  <h2 className="text-xl font-semibold text-white mb-1">Booking Confirmed</h2>
+                  <p className="text-text-muted text-sm">
+                    Confirmation sent to {String(bookingData?.guestEmail)}
+                  </p>
                 </div>
-              </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <a
-                  href="https://wa.me/255000000000"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-primary"
+                {/* Details card */}
+                <motion.div
+                  className="mx-5 mb-5 bg-surface-lighter/30 rounded-xl border border-surface-border/20 overflow-hidden"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.25 }}
                 >
-                  Chat on WhatsApp
-                </a>
-                <Link href="/" className="btn-outline">
-                  Back to Home
-                </Link>
+                  {/* Ref row */}
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-surface-border/15">
+                    <div>
+                      <p className="text-[10px] text-text-muted uppercase tracking-wider mb-0.5">Reference</p>
+                      <p className="text-base font-mono font-bold text-accent">
+                        {String(bookingData?.bookingId || 'BK-XXXXXX')}
+                      </p>
+                    </div>
+                    <button
+                      onClick={copyBookingId}
+                      className="text-text-muted hover:text-accent transition p-1.5 rounded-lg hover:bg-white/5"
+                    >
+                      {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+
+                  {/* Info rows — Apple list style */}
+                  <div className="divide-y divide-surface-border/15">
+                    {[
+                      ['Guest', String(bookingData?.guestName)],
+                      ['Room', selectedRoomData?.name || String(bookingData?.roomId)],
+                      ['Check-in', formatDate(Number(bookingData?.checkIn))],
+                      ['Check-out', formatDate(Number(bookingData?.checkOut))],
+                      ['Nights', String(bookingData?.nights)],
+                    ].map(([label, value]) => (
+                      <div key={label} className="flex justify-between items-center px-4 py-2.5">
+                        <span className="text-text-muted text-sm">{label}</span>
+                        <span className="text-white text-sm font-medium">{value}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between items-center px-4 py-3 bg-accent/5">
+                      <span className="text-white text-sm font-semibold">Total</span>
+                      <span className="text-accent text-base font-bold">
+                        {formatCurrency(Number(bookingData?.totalPrice), 'TZS')}
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Actions */}
+                <motion.div
+                  className="px-5 pb-6 flex gap-3"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  <a
+                    href="https://wa.me/255000000000"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 bg-green-600 hover:bg-green-500 text-white font-medium py-2.5 rounded-xl text-sm transition-all active:scale-[0.98] text-center"
+                  >
+                    WhatsApp Us
+                  </a>
+                  <Link
+                    href="/"
+                    className="flex-1 border border-surface-border/40 text-text-secondary hover:text-white py-2.5 rounded-xl text-sm transition-all hover:border-surface-border active:scale-[0.98] text-center"
+                  >
+                    Home
+                  </Link>
+                </motion.div>
               </div>
-            </div>
+            </motion.div>
           )}
-        </div>
+        </AnimatePresence>
       </Container>
     </div>
   );
