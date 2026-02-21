@@ -1,4 +1,4 @@
-import { db } from './firebase';
+import { db, isFirebaseConfigured } from './firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { calculateNights } from '@twiga/shared';
 
@@ -45,12 +45,10 @@ export const paymentService = {
     const totalPrice = data.roomPrice * nights;
     const depositAmount = Math.ceil((totalPrice * data.depositPercentage) / 100);
 
-    // Determine statuses based on payment method
     const isPayOnArrival = data.paymentMethod === 'pay_on_arrival';
     const bookingStatus = isPayOnArrival ? 'pay_on_arrival' : 'confirmed';
     const paymentStatus = isPayOnArrival ? 'initiated' : 'confirmed';
 
-    // Build booking document (no undefined values — Firestore rejects them)
     const bookingDoc: Record<string, unknown> = {
       id: bookingId,
       propertyId: PROPERTY_ID,
@@ -71,12 +69,10 @@ export const paymentService = {
       updatedAt: now,
     };
 
-    // Only add optional fields if they have values
     if (data.booking.specialRequests) {
       bookingDoc.specialRequests = data.booking.specialRequests;
     }
 
-    // Build payment document
     const paymentDoc: Record<string, unknown> = {
       id: paymentId,
       bookingId: bookingId,
@@ -96,7 +92,6 @@ export const paymentService = {
       },
     };
 
-    // Add optional payment fields
     if (data.mobileProvider) {
       paymentDoc.mobileProvider = data.mobileProvider;
     }
@@ -107,26 +102,27 @@ export const paymentService = {
       paymentDoc.confirmedAt = now;
     }
 
-    // Write booking to Firestore
-    const bookingRef = doc(
-      db,
-      'companies', COMPANY_ID,
-      'properties', PROPERTY_ID,
-      'bookings', bookingId
-    );
-    await setDoc(bookingRef, bookingDoc);
+    if (isFirebaseConfigured && db) {
+      const bookingRef = doc(db, 'companies', COMPANY_ID, 'properties', PROPERTY_ID, 'bookings', bookingId);
+      await setDoc(bookingRef, bookingDoc);
 
-    // Write payment to Firestore (subcollection of booking)
-    const paymentRef = doc(
-      db,
-      'companies', COMPANY_ID,
-      'properties', PROPERTY_ID,
-      'bookings', bookingId,
-      'payments', paymentId
-    );
-    await setDoc(paymentRef, paymentDoc);
+      const paymentRef = doc(
+        db,
+        'companies',
+        COMPANY_ID,
+        'properties',
+        PROPERTY_ID,
+        'bookings',
+        bookingId,
+        'payments',
+        paymentId
+      );
+      await setDoc(paymentRef, paymentDoc);
 
-    console.info(`[Firestore] Booking ${bookingId} created with status: ${bookingStatus}`);
+      console.info(`[Firestore] Booking ${bookingId} created with status: ${bookingStatus}`);
+    } else {
+      console.info('[Demo Mode] Firebase not configured. Returning simulated booking/payment response.');
+    }
 
     return {
       bookingId,
@@ -138,7 +134,6 @@ export const paymentService = {
   },
 
   async pollPaymentStatus(_bookingId: string, _paymentId: string) {
-    // Payments are confirmed immediately (no Flutterwave webhook in this mode)
     return { status: 'confirmed', attempt: 1, message: 'Payment confirmed' };
   },
 };

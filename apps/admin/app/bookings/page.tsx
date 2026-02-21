@@ -1,30 +1,35 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  Search, Filter, Eye, X, Calendar, Mail, Phone, Clock,
-  Moon, MapPin, User, CreditCard, MessageSquare, AlertTriangle,
-  Plane, BedDouble, ChevronRight,
+  Calendar,
+  Clock,
+  Eye,
+  Filter,
+  Mail,
+  MapPin,
+  Phone,
+  Search,
+  User,
+  X,
 } from 'lucide-react';
-import { fetchBookings, fetchRooms } from '@/lib/data';
+import {
+  fetchBookings,
+  fetchRooms,
+  subscribeBookings,
+  subscribeRooms,
+  updateBookingStatus,
+  updateBookingStatusesBulk,
+} from '@/lib/data';
 import { formatCurrency, formatDate, formatPhoneNumber } from '@twiga/shared/utils/formatting';
-import type { TwigaBooking, TwigaRoom } from '@twiga/shared/types';
+import type { BookingStatus, TwigaBooking, TwigaRoom } from '@twiga/shared/types';
 
 const statusStyles: Record<string, string> = {
-  confirmed: 'bg-green-500/20 text-green-400',
-  pending_payment: 'bg-yellow-500/20 text-yellow-400',
-  pay_on_arrival: 'bg-blue-500/20 text-blue-400',
-  completed: 'bg-gray-500/20 text-gray-300',
-  cancelled: 'bg-red-500/20 text-red-400',
-};
-
-const statusDot: Record<string, string> = {
-  confirmed: 'bg-green-400',
-  pending_payment: 'bg-yellow-400',
-  pay_on_arrival: 'bg-blue-400',
-  completed: 'bg-gray-400',
-  cancelled: 'bg-red-400',
+  confirmed: 'bg-[#e6f2e5] text-[#4d7a4d]',
+  pending_payment: 'bg-[#fff3df] text-[#9d6c1f]',
+  pay_on_arrival: 'bg-[#e6effa] text-[#3d6494]',
+  completed: 'bg-[#ecefee] text-[#657367]',
+  cancelled: 'bg-[#f9e8e6] text-[#aa5447]',
 };
 
 const statusLabels: Record<string, string> = {
@@ -48,440 +53,434 @@ export default function BookingsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedBooking, setSelectedBooking] = useState<TwigaBooking | null>(null);
+  const [actionLoading, setActionLoading] = useState<BookingStatus | null>(null);
+  const [actionError, setActionError] = useState('');
+  const [cancelReason, setCancelReason] = useState('');
+  const [selectedBookingIds, setSelectedBookingIds] = useState<string[]>([]);
+  const [bulkLoading, setBulkLoading] = useState<BookingStatus | null>(null);
+  const [bulkError, setBulkError] = useState('');
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [bookingData, roomData] = await Promise.all([fetchBookings(), fetchRooms()]);
-        setBookings(bookingData);
-        setRooms(roomData);
-      } catch {
-        // handled
-      } finally {
-        setLoading(false);
-      }
+    let bookingsReady = false;
+    let roomsReady = false;
+
+    const completeLoadingIfReady = () => {
+      if (bookingsReady && roomsReady) setLoading(false);
     };
-    loadData();
+
+    const bootstrap = async () => {
+      const [bookingData, roomData] = await Promise.all([fetchBookings(), fetchRooms()]);
+      setBookings(bookingData);
+      setRooms(roomData);
+    };
+
+    void bootstrap();
+
+    const unsubBookings = subscribeBookings((data) => {
+      setBookings(data);
+      bookingsReady = true;
+      completeLoadingIfReady();
+    });
+    const unsubRooms = subscribeRooms((data) => {
+      setRooms(data);
+      roomsReady = true;
+      completeLoadingIfReady();
+    });
+
+    return () => {
+      unsubBookings();
+      unsubRooms();
+    };
   }, []);
 
-  // Close on Escape key
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setSelectedBooking(null);
+    setCancelReason(selectedBooking?.cancelReason || '');
+    setActionError('');
+    setActionLoading(null);
+  }, [selectedBooking]);
+
+  useEffect(() => {
+    setSelectedBookingIds((prev) => prev.filter((id) => bookings.some((booking) => booking.id === id)));
+  }, [bookings]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSelectedBooking(null);
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  const filteredBookings = bookings.filter((b) => {
+  const roomName = useCallback(
+    (roomId: string) => {
+      const room = rooms.find((r) => r.id === roomId);
+      return room?.name || roomId;
+    },
+    [rooms]
+  );
+
+  const filteredBookings = bookings.filter((booking) => {
+    const needle = searchQuery.toLowerCase();
     const matchesSearch =
-      b.guestName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.guestEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.roomId.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || b.status === statusFilter;
+      booking.guestName.toLowerCase().includes(needle) ||
+      booking.guestEmail.toLowerCase().includes(needle) ||
+      booking.id.toLowerCase().includes(needle) ||
+      roomName(booking.roomId).toLowerCase().includes(needle);
+    const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
+
     return matchesSearch && matchesStatus;
   });
 
-  const roomName = useCallback((roomId: string) => {
-    const room = rooms.find((r) => r.id === roomId);
-    return room?.name || roomId;
-  }, [rooms]);
-
-  const roomImage = useCallback((roomId: string) => {
-    const room = rooms.find((r) => r.id === roomId);
-    return room?.images?.[0] || '';
-  }, [rooms]);
-
-  const formatTime = (time?: string) => {
-    if (!time) return '—';
-    return time;
+  const summary = {
+    total: bookings.length,
+    confirmed: bookings.filter((b) => b.status === 'confirmed').length,
+    pending: bookings.filter((b) => b.status === 'pending_payment').length,
+    arrival: bookings.filter((b) => b.status === 'pay_on_arrival').length,
+    cancelled: bookings.filter((b) => b.status === 'cancelled').length,
   };
 
+  const applyLocalBookingStatus = (bookingId: string, status: BookingStatus, reason?: string) => {
+    const now = Date.now();
+    const update = (booking: TwigaBooking): TwigaBooking => {
+      if (booking.id !== bookingId) return booking;
+      const next: TwigaBooking = { ...booking, status, updatedAt: now };
+      if (status === 'cancelled') {
+        next.cancelledAt = now;
+        next.cancelReason = reason || 'Cancelled by admin';
+      }
+      if (status === 'completed') {
+        next.checkInCompleted = true;
+        next.checkInCompletedAt = now;
+      }
+      return next;
+    };
+
+    setBookings((prev) => prev.map(update));
+    setSelectedBooking((prev) => (prev ? update(prev) : prev));
+  };
+
+  const handleBookingAction = async (status: BookingStatus) => {
+    if (!selectedBooking) return;
+    if (status === 'cancelled' && !cancelReason.trim()) {
+      setActionError('Please provide a cancellation reason.');
+      return;
+    }
+
+    setActionError('');
+    setActionLoading(status);
+    const reason = status === 'cancelled' ? cancelReason.trim() : undefined;
+    const ok = await updateBookingStatus({ bookingId: selectedBooking.id, status, reason });
+
+    if (!ok) {
+      setActionError('Could not update booking. Check your permissions/connection and try again.');
+      setActionLoading(null);
+      return;
+    }
+
+    applyLocalBookingStatus(selectedBooking.id, status, reason);
+    setActionLoading(null);
+  };
+
+  const handleBulkBookingAction = async (status: BookingStatus) => {
+    if (selectedBookingIds.length === 0) return;
+    if (status === 'cancelled' && !cancelReason.trim()) {
+      setBulkError('Please provide a cancellation reason for bulk cancel.');
+      return;
+    }
+
+    const reason = status === 'cancelled' ? cancelReason.trim() : undefined;
+    setBulkError('');
+    setBulkLoading(status);
+    const ok = await updateBookingStatusesBulk(selectedBookingIds, status, reason);
+
+    if (!ok) {
+      setBulkError('Some bookings could not be updated. Please retry.');
+      setBulkLoading(null);
+      return;
+    }
+
+    selectedBookingIds.forEach((id) => applyLocalBookingStatus(id, status, reason));
+    setSelectedBookingIds([]);
+    setBulkLoading(null);
+  };
+
+  const toggleBookingSelection = (bookingId: string) => {
+    setSelectedBookingIds((prev) =>
+      prev.includes(bookingId) ? prev.filter((id) => id !== bookingId) : [...prev, bookingId]
+    );
+  };
+
+  const allFilteredSelected =
+    filteredBookings.length > 0 && filteredBookings.every((booking) => selectedBookingIds.includes(booking.id));
+
   return (
-    <div className="max-w-7xl mx-auto">
-      <motion.div className="mb-8" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-3xl font-bold text-white mb-1">Bookings</h1>
-        <p className="text-gray-400">Manage all guest bookings</p>
-      </motion.div>
+    <div className="max-w-[1400px] mx-auto space-y-5">
+      <section className="bg-[#f8faf7] border border-[#dfe6dd] rounded-[24px] p-5 md:p-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-[34px] leading-none font-semibold text-[#1f2d23]">Reservations</h1>
+            <p className="text-sm text-[#849684] mt-1">Manage and inspect all guest bookings</p>
+          </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by guest, email, booking ID, or room..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-accent focus:border-transparent transition"
-          />
+          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+            <div className="relative min-w-[260px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#91a192]" />
+              <input
+                type="text"
+                placeholder="Search guest, room, booking ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-10 rounded-xl bg-white border border-[#d8e1d7] pl-9 pr-3 text-sm text-[#2f4032] outline-none focus:border-[#b9cdb7]"
+              />
+            </div>
+
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#91a192]" />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="h-10 min-w-[190px] rounded-xl bg-white border border-[#d8e1d7] pl-9 pr-8 text-sm text-[#2f4032] outline-none focus:border-[#b9cdb7] appearance-none"
+              >
+                <option value="all">All statuses</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="pending_payment">Pending payment</option>
+                <option value="pay_on_arrival">Pay on arrival</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+          </div>
         </div>
-        <div className="relative">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-8 py-3 text-white appearance-none cursor-pointer focus:ring-2 focus:ring-accent"
-          >
-            <option value="all">All Statuses</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="pending_payment">Pending Payment</option>
-            <option value="pay_on_arrival">Pay on Arrival</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
+
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-5">
+          <button onClick={() => setStatusFilter('all')} className={`rounded-xl border p-3 text-left ${statusFilter === 'all' ? 'bg-white border-[#c8d8c9]' : 'bg-[#f1f5ef] border-[#e0e8de]'}`}>
+            <p className="text-xs text-[#869786]">Total</p>
+            <p className="text-2xl font-semibold text-[#2c3d2f]">{summary.total}</p>
+          </button>
+          <button onClick={() => setStatusFilter('confirmed')} className={`rounded-xl border p-3 text-left ${statusFilter === 'confirmed' ? 'bg-white border-[#c8d8c9]' : 'bg-[#f1f5ef] border-[#e0e8de]'}`}>
+            <p className="text-xs text-[#869786]">Confirmed</p>
+            <p className="text-2xl font-semibold text-[#2c3d2f]">{summary.confirmed}</p>
+          </button>
+          <button onClick={() => setStatusFilter('pending_payment')} className={`rounded-xl border p-3 text-left ${statusFilter === 'pending_payment' ? 'bg-white border-[#c8d8c9]' : 'bg-[#f1f5ef] border-[#e0e8de]'}`}>
+            <p className="text-xs text-[#869786]">Pending</p>
+            <p className="text-2xl font-semibold text-[#2c3d2f]">{summary.pending}</p>
+          </button>
+          <button onClick={() => setStatusFilter('pay_on_arrival')} className={`rounded-xl border p-3 text-left ${statusFilter === 'pay_on_arrival' ? 'bg-white border-[#c8d8c9]' : 'bg-[#f1f5ef] border-[#e0e8de]'}`}>
+            <p className="text-xs text-[#869786]">Arrival</p>
+            <p className="text-2xl font-semibold text-[#2c3d2f]">{summary.arrival}</p>
+          </button>
+          <button onClick={() => setStatusFilter('cancelled')} className={`rounded-xl border p-3 text-left ${statusFilter === 'cancelled' ? 'bg-white border-[#c8d8c9]' : 'bg-[#f1f5ef] border-[#e0e8de]'}`}>
+            <p className="text-xs text-[#869786]">Cancelled</p>
+            <p className="text-2xl font-semibold text-[#2c3d2f]">{summary.cancelled}</p>
+          </button>
         </div>
-      </div>
+      </section>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
-        {(['all', 'confirmed', 'pending_payment', 'pay_on_arrival', 'cancelled'] as const).map((status) => {
-          const count = status === 'all' ? bookings.length : bookings.filter((b) => b.status === status).length;
-          return (
-            <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={`bg-gray-800 border rounded-lg p-3 text-center transition ${
-                statusFilter === status ? 'border-accent' : 'border-gray-700 hover:border-gray-600'
-              }`}
-            >
-              <p className="text-2xl font-bold text-white">{count}</p>
-              <p className="text-xs text-gray-400">{status === 'all' ? 'Total' : statusLabels[status]}</p>
-            </button>
-          );
-        })}
-      </div>
+      <section className="bg-white border border-[#dce5db] rounded-2xl overflow-hidden">
+        {selectedBookingIds.length > 0 ? (
+          <div className="p-3 border-b border-[#e3ebe2] bg-[#f7fbf6]">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold text-[#446346]">{selectedBookingIds.length} selected</p>
+              <button
+                onClick={() => handleBulkBookingAction('confirmed')}
+                disabled={bulkLoading !== null}
+                className="h-8 px-3 rounded-lg border border-[#c9ddca] bg-[#eaf4ea] text-[#3f6e40] text-xs font-semibold disabled:opacity-60"
+              >
+                {bulkLoading === 'confirmed' ? 'Updating...' : 'Bulk Confirm'}
+              </button>
+              <button
+                onClick={() => handleBulkBookingAction('completed')}
+                disabled={bulkLoading !== null}
+                className="h-8 px-3 rounded-lg border border-[#cad8e8] bg-[#e9f0f8] text-[#3b5f8e] text-xs font-semibold disabled:opacity-60"
+              >
+                {bulkLoading === 'completed' ? 'Updating...' : 'Bulk Complete'}
+              </button>
+              <button
+                onClick={() => handleBulkBookingAction('cancelled')}
+                disabled={bulkLoading !== null}
+                className="h-8 px-3 rounded-lg border border-[#ebd0cc] bg-[#f9ece9] text-[#9d4f44] text-xs font-semibold disabled:opacity-60"
+              >
+                {bulkLoading === 'cancelled' ? 'Cancelling...' : 'Bulk Cancel'}
+              </button>
+              <button
+                onClick={() => setSelectedBookingIds([])}
+                className="h-8 px-3 rounded-lg border border-[#d8e1d7] bg-white text-[#5f715f] text-xs font-semibold"
+              >
+                Clear
+              </button>
+            </div>
+            <textarea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="Cancellation reason for bulk cancel"
+              className="mt-2 w-full min-h-[64px] rounded-lg border border-[#d8e1d7] px-3 py-2 text-sm text-[#2f4032] outline-none focus:border-[#b9cdb7]"
+            />
+            {bulkError ? <p className="mt-1 text-sm text-[#aa5447]">{bulkError}</p> : null}
+          </div>
+        ) : null}
 
-      {/* Bookings table */}
-      <motion.div
-        className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
         {loading ? (
-          <div className="p-8 space-y-3">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-14 bg-gray-700 rounded animate-pulse" />
+          <div className="p-6 space-y-3">
+            {[...Array(6)].map((_, idx) => (
+              <div key={idx} className="h-12 rounded-lg bg-[#f1f5ef] animate-pulse" />
             ))}
           </div>
         ) : filteredBookings.length === 0 ? (
-          <div className="p-12 text-center text-gray-400">
-            <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium">No bookings found</p>
-            <p className="text-sm">Try adjusting your search or filter</p>
+          <div className="p-10 text-center">
+            <Calendar className="w-12 h-12 text-[#a0afa0] mx-auto mb-3" />
+            <p className="text-[#6c7f6d]">No matching bookings found.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-800/50 border-b border-gray-700">
+              <thead className="bg-[#f5f8f4] border-b border-[#e3ebe2]">
                 <tr>
-                  <th className="text-left py-4 px-4 font-semibold text-gray-400">Guest</th>
-                  <th className="text-left py-4 px-4 font-semibold text-gray-400">Room</th>
-                  <th className="text-left py-4 px-4 font-semibold text-gray-400">Check In</th>
-                  <th className="text-left py-4 px-4 font-semibold text-gray-400">Pick Up</th>
-                  <th className="text-left py-4 px-4 font-semibold text-gray-400">Check Out</th>
-                  <th className="text-left py-4 px-4 font-semibold text-gray-400">Nights</th>
-                  <th className="text-left py-4 px-4 font-semibold text-gray-400">Amount</th>
-                  <th className="text-left py-4 px-4 font-semibold text-gray-400">Status</th>
-                  <th className="text-left py-4 px-4 font-semibold text-gray-400"></th>
+                  <th className="text-left py-3 px-4 font-semibold text-[#899a8a]">
+                    <input
+                      type="checkbox"
+                      checked={allFilteredSelected}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedBookingIds(filteredBookings.map((booking) => booking.id));
+                        } else {
+                          setSelectedBookingIds([]);
+                        }
+                      }}
+                    />
+                  </th>
+                  <th className="text-left py-3 px-4 font-semibold text-[#899a8a]">Booking</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[#899a8a]">Guest</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[#899a8a]">Room</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[#899a8a]">Check In</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[#899a8a]">Check Out</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[#899a8a]">Amount</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[#899a8a]">Status</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[#899a8a]">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredBookings.map((booking) => (
-                  <motion.tr
-                    key={booking.id}
-                    className="border-b border-gray-700/50 hover:bg-gray-700/20 transition cursor-pointer group"
-                    onClick={() => setSelectedBooking(booking)}
-                    whileHover={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
-                  >
-                    <td className="py-4 px-4">
-                      <p className="text-white font-medium">{booking.guestName}</p>
-                      <p className="text-gray-500 text-xs font-mono">{booking.id}</p>
+                  <tr key={booking.id} className="border-b border-[#edf2ec] hover:bg-[#f8fbf7]">
+                    <td className="py-3 px-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedBookingIds.includes(booking.id)}
+                        onChange={() => toggleBookingSelection(booking.id)}
+                      />
                     </td>
-                    <td className="py-4 px-4 text-gray-300">{roomName(booking.roomId)}</td>
-                    <td className="py-4 px-4">
-                      <p className="text-gray-300">{formatDate(booking.checkIn)}</p>
+                    <td className="py-3 px-4">
+                      <p className="font-semibold text-[#2f4032]">#{booking.id}</p>
+                      <p className="text-xs text-[#8da08e]">{booking.totalNights} nights</p>
                     </td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-1.5 text-gray-300">
-                        <Clock className="w-3.5 h-3.5 text-gray-500" />
-                        <span>{formatTime(booking.pickupTime)}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <p className="text-gray-300">{formatDate(booking.checkOut)}</p>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-1.5">
-                        <Moon className="w-3.5 h-3.5 text-gray-500" />
-                        <span className="text-white font-medium">{booking.totalNights}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 font-semibold text-white">{formatCurrency(booking.totalPrice, 'TZS')}</td>
-                    <td className="py-4 px-4">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${statusStyles[booking.status] || 'bg-gray-500/20 text-gray-400'}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${statusDot[booking.status] || 'bg-gray-400'}`} />
+                    <td className="py-3 px-4 text-[#2f4032]">{booking.guestName}</td>
+                    <td className="py-3 px-4 text-[#617262]">{roomName(booking.roomId)}</td>
+                    <td className="py-3 px-4 text-[#617262]">{formatDate(booking.checkIn)}</td>
+                    <td className="py-3 px-4 text-[#617262]">{formatDate(booking.checkOut)}</td>
+                    <td className="py-3 px-4 font-semibold text-[#2f4032]">{formatCurrency(booking.totalPrice, 'TZS')}</td>
+                    <td className="py-3 px-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusStyles[booking.status] || 'bg-[#ecefee] text-[#657367]'}`}>
                         {statusLabels[booking.status] || booking.status}
                       </span>
                     </td>
-                    <td className="py-4 px-4">
-                      <ChevronRight className="w-4 h-4 text-gray-600 group-hover:text-accent transition" />
+                    <td className="py-3 px-4">
+                      <button
+                        onClick={() => setSelectedBooking(booking)}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-[#d7e1d7] text-[#5f715f] hover:bg-[#f0f5ef]"
+                        title="View booking details"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
                     </td>
-                  </motion.tr>
+                  </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-      </motion.div>
+      </section>
 
-      {/* macOS-style Booking Detail Modal */}
-      <AnimatePresence>
-        {selectedBooking && (
-          <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            {/* Backdrop blur */}
-            <motion.div
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedBooking(null)}
-            />
+      {selectedBooking && (
+        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm p-4 flex items-center justify-center" onClick={() => setSelectedBooking(null)}>
+          <div className="w-full max-w-2xl rounded-2xl border border-[#dce5db] bg-[#fbfdfb] shadow-[0_20px_40px_rgba(24,38,28,0.2)]" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-[#e2eae1] flex items-start justify-between">
+              <div>
+                <p className="text-xs font-semibold tracking-wide uppercase text-[#92a292]">Booking Details</p>
+                <h3 className="text-2xl font-semibold text-[#263427] mt-1">#{selectedBooking.id}</h3>
+              </div>
+              <button onClick={() => setSelectedBooking(null)} className="w-9 h-9 rounded-lg border border-[#d7e1d7] text-[#687868] hover:bg-[#f1f6f0]">
+                <X className="w-4 h-4 mx-auto" />
+              </button>
+            </div>
 
-            {/* Modal */}
-            <motion.div
-              className="relative bg-gray-800/95 backdrop-blur-xl rounded-2xl border border-gray-600/50 max-w-2xl w-full max-h-[85vh] overflow-hidden shadow-2xl shadow-black/50"
-              initial={{ opacity: 0, scale: 0.85, y: 30 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.85, y: 30 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Room image header */}
-              {roomImage(selectedBooking.roomId) && (
-                <div className="relative h-48 overflow-hidden">
-                  <img
-                    src={roomImage(selectedBooking.roomId)}
-                    alt={roomName(selectedBooking.roomId)}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-gray-800/95 via-gray-800/40 to-transparent" />
-                  <div className="absolute bottom-4 left-6 right-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-white/70 text-xs font-mono mb-1">{selectedBooking.id}</p>
-                        <h3 className="text-2xl font-bold text-white">{selectedBooking.guestName}</h3>
-                      </div>
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-md ${statusStyles[selectedBooking.status]}`}>
-                        <span className={`w-2 h-2 rounded-full ${statusDot[selectedBooking.status]} animate-pulse`} />
-                        {statusLabels[selectedBooking.status]}
-                      </span>
-                    </div>
-                  </div>
-                  {/* Close button */}
+            <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="rounded-xl border border-[#e3ebe2] bg-white p-4 space-y-2">
+                <p className="text-xs text-[#93a294] uppercase font-semibold">Guest</p>
+                <p className="text-lg font-semibold text-[#2b3c2d]">{selectedBooking.guestName}</p>
+                <p className="text-sm text-[#647765] inline-flex items-center gap-2"><Mail className="w-4 h-4" />{selectedBooking.guestEmail}</p>
+                <p className="text-sm text-[#647765] inline-flex items-center gap-2"><Phone className="w-4 h-4" />{formatPhoneNumber(selectedBooking.guestPhone)}</p>
+                <p className="text-sm text-[#647765] inline-flex items-center gap-2"><User className="w-4 h-4" />{selectedBooking.numberOfGuests} guests</p>
+              </div>
+
+              <div className="rounded-xl border border-[#e3ebe2] bg-white p-4 space-y-2">
+                <p className="text-xs text-[#93a294] uppercase font-semibold">Stay</p>
+                <p className="text-sm text-[#647765] inline-flex items-center gap-2"><MapPin className="w-4 h-4" />{roomName(selectedBooking.roomId)}</p>
+                <p className="text-sm text-[#647765] inline-flex items-center gap-2"><Calendar className="w-4 h-4" />{formatDate(selectedBooking.checkIn)} to {formatDate(selectedBooking.checkOut)}</p>
+                <p className="text-sm text-[#647765] inline-flex items-center gap-2"><Clock className="w-4 h-4" />Pick-up: {selectedBooking.pickupTime || 'N/A'}</p>
+                <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-medium ${statusStyles[selectedBooking.status] || 'bg-[#ecefee] text-[#657367]'}`}>
+                  {statusLabels[selectedBooking.status] || selectedBooking.status}
+                </span>
+              </div>
+
+              <div className="rounded-xl border border-[#e3ebe2] bg-white p-4 md:col-span-2">
+                <p className="text-xs text-[#93a294] uppercase font-semibold mb-2">Payment</p>
+                <div className="flex flex-wrap items-center gap-4">
+                  <p className="text-2xl font-semibold text-[#2b3c2d]">{formatCurrency(selectedBooking.totalPrice, 'TZS')}</p>
+                  <p className="text-sm text-[#6b7d6c]">Source: {sourceLabels[selectedBooking.source] || selectedBooking.source}</p>
+                  <p className="text-sm text-[#6b7d6c]">Nights: {selectedBooking.totalNights}</p>
+                </div>
+                {selectedBooking.specialRequests ? (
+                  <p className="text-sm text-[#5d6f5f] mt-3">Note: {selectedBooking.specialRequests}</p>
+                ) : null}
+              </div>
+
+              <div className="rounded-xl border border-[#e3ebe2] bg-white p-4 md:col-span-2">
+                <p className="text-xs text-[#93a294] uppercase font-semibold mb-3">Admin Actions</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <button
-                    onClick={() => setSelectedBooking(null)}
-                    className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white/80 hover:text-white hover:bg-black/60 transition"
+                    onClick={() => handleBookingAction('confirmed')}
+                    disabled={actionLoading !== null}
+                    className="h-10 rounded-xl border border-[#c9ddca] bg-[#eaf4ea] text-[#3f6e40] text-sm font-semibold disabled:opacity-60"
                   >
-                    <X className="w-4 h-4" />
+                    {actionLoading === 'confirmed' ? 'Updating...' : 'Mark Confirmed'}
+                  </button>
+                  <button
+                    onClick={() => handleBookingAction('completed')}
+                    disabled={actionLoading !== null}
+                    className="h-10 rounded-xl border border-[#cad8e8] bg-[#e9f0f8] text-[#3b5f8e] text-sm font-semibold disabled:opacity-60"
+                  >
+                    {actionLoading === 'completed' ? 'Updating...' : 'Mark Completed'}
+                  </button>
+                  <button
+                    onClick={() => handleBookingAction('cancelled')}
+                    disabled={actionLoading !== null}
+                    className="h-10 rounded-xl border border-[#ebd0cc] bg-[#f9ece9] text-[#9d4f44] text-sm font-semibold disabled:opacity-60"
+                  >
+                    {actionLoading === 'cancelled' ? 'Cancelling...' : 'Cancel Booking'}
                   </button>
                 </div>
-              )}
-
-              {/* No image fallback header */}
-              {!roomImage(selectedBooking.roomId) && (
-                <div className="flex items-center justify-between p-6 border-b border-gray-700/50">
-                  <div>
-                    <p className="text-white/50 text-xs font-mono mb-1">{selectedBooking.id}</p>
-                    <h3 className="text-xl font-bold text-white">{selectedBooking.guestName}</h3>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${statusStyles[selectedBooking.status]}`}>
-                      <span className={`w-2 h-2 rounded-full ${statusDot[selectedBooking.status]}`} />
-                      {statusLabels[selectedBooking.status]}
-                    </span>
-                    <button onClick={() => setSelectedBooking(null)} className="text-gray-400 hover:text-white transition">
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Scrollable content */}
-              <div className="overflow-y-auto max-h-[calc(85vh-12rem)] p-6 space-y-5">
-
-                {/* Quick info cards row */}
-                <div className="grid grid-cols-4 gap-3">
-                  <motion.div
-                    className="bg-gray-700/30 rounded-xl p-3 text-center border border-gray-700/50"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                  >
-                    <Calendar className="w-4 h-4 text-accent mx-auto mb-1" />
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Check In</p>
-                    <p className="text-white text-xs font-semibold mt-0.5">{formatDate(selectedBooking.checkIn)}</p>
-                  </motion.div>
-                  <motion.div
-                    className="bg-gray-700/30 rounded-xl p-3 text-center border border-gray-700/50"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15 }}
-                  >
-                    <Plane className="w-4 h-4 text-blue-400 mx-auto mb-1" />
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Pick Up</p>
-                    <p className="text-white text-xs font-semibold mt-0.5">{formatTime(selectedBooking.pickupTime)}</p>
-                  </motion.div>
-                  <motion.div
-                    className="bg-gray-700/30 rounded-xl p-3 text-center border border-gray-700/50"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                  >
-                    <Calendar className="w-4 h-4 text-red-400 mx-auto mb-1" />
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Check Out</p>
-                    <p className="text-white text-xs font-semibold mt-0.5">{formatDate(selectedBooking.checkOut)}</p>
-                  </motion.div>
-                  <motion.div
-                    className="bg-gray-700/30 rounded-xl p-3 text-center border border-gray-700/50"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.25 }}
-                  >
-                    <Moon className="w-4 h-4 text-purple-400 mx-auto mb-1" />
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Nights</p>
-                    <p className="text-white text-xs font-semibold mt-0.5">{selectedBooking.totalNights}</p>
-                  </motion.div>
-                </div>
-
-                {/* Guest info */}
-                <motion.div
-                  className="bg-gray-700/20 rounded-xl p-4 border border-gray-700/40"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  <h4 className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                    <User className="w-3.5 h-3.5" />
-                    Guest Information
-                  </h4>
-                  <div className="space-y-2.5">
-                    <div className="flex items-center space-x-3 text-sm">
-                      <Mail className="w-4 h-4 text-gray-500 shrink-0" />
-                      <span className="text-gray-300">{selectedBooking.guestEmail}</span>
-                    </div>
-                    <div className="flex items-center space-x-3 text-sm">
-                      <Phone className="w-4 h-4 text-gray-500 shrink-0" />
-                      <span className="text-gray-300">{formatPhoneNumber(selectedBooking.guestPhone)}</span>
-                    </div>
-                    <div className="flex items-center space-x-3 text-sm">
-                      <User className="w-4 h-4 text-gray-500 shrink-0" />
-                      <span className="text-gray-300">{selectedBooking.numberOfGuests} guest{selectedBooking.numberOfGuests > 1 ? 's' : ''}</span>
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* Stay details */}
-                <motion.div
-                  className="bg-gray-700/20 rounded-xl p-4 border border-gray-700/40"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.35 }}
-                >
-                  <h4 className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                    <BedDouble className="w-3.5 h-3.5" />
-                    Stay Details
-                  </h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-500 text-xs">Room</p>
-                      <p className="text-white font-medium">{roomName(selectedBooking.roomId)}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-xs">Source</p>
-                      <p className="text-white font-medium">{sourceLabels[selectedBooking.source]}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-xs">Booked On</p>
-                      <p className="text-white font-medium">{formatDate(selectedBooking.createdAt)}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-xs">Payment ID</p>
-                      <p className="text-white font-mono text-xs">{selectedBooking.paymentId}</p>
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* Pricing */}
-                <motion.div
-                  className="bg-gray-700/20 rounded-xl p-4 border border-gray-700/40"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                >
-                  <h4 className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                    <CreditCard className="w-3.5 h-3.5" />
-                    Pricing
-                  </h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Room rate</span>
-                      <span className="text-gray-300">{formatCurrency(selectedBooking.roomPrice, 'TZS')}/night</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">{selectedBooking.totalNights} night{selectedBooking.totalNights > 1 ? 's' : ''}</span>
-                      <span className="text-gray-300">{formatCurrency(selectedBooking.totalPrice, 'TZS')}</span>
-                    </div>
-                    <div className="flex justify-between border-t border-gray-600/50 pt-2 mt-2">
-                      <span className="text-white font-semibold">Total</span>
-                      <span className="text-accent font-bold text-lg">{formatCurrency(selectedBooking.totalPrice, 'TZS')}</span>
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* Special Requests */}
-                {selectedBooking.specialRequests && (
-                  <motion.div
-                    className="bg-gray-700/20 rounded-xl p-4 border border-gray-700/40"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.45 }}
-                  >
-                    <h4 className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-2">
-                      <MessageSquare className="w-3.5 h-3.5" />
-                      Special Requests
-                    </h4>
-                    <p className="text-gray-300 text-sm">{selectedBooking.specialRequests}</p>
-                  </motion.div>
-                )}
-
-                {/* Cancellation */}
-                {selectedBooking.cancelReason && (
-                  <motion.div
-                    className="bg-red-500/5 rounded-xl p-4 border border-red-500/20"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.45 }}
-                  >
-                    <h4 className="text-[11px] font-semibold text-red-400/80 uppercase tracking-widest mb-2 flex items-center gap-2">
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                      Cancellation Reason
-                    </h4>
-                    <p className="text-gray-300 text-sm">{selectedBooking.cancelReason}</p>
-                  </motion.div>
-                )}
+                <textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="Cancellation reason (required for cancel action)"
+                  className="mt-3 w-full min-h-[78px] rounded-xl border border-[#d8e1d7] px-3 py-2 text-sm text-[#2f4032] outline-none focus:border-[#b9cdb7]"
+                />
+                {actionError ? <p className="mt-2 text-sm text-[#aa5447]">{actionError}</p> : null}
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

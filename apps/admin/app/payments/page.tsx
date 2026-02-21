@@ -1,18 +1,35 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Search, Filter, CreditCard, Smartphone, Wallet, Eye, X, DollarSign, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle,
+  CreditCard,
+  DollarSign,
+  Eye,
+  Filter,
+  Search,
+  Smartphone,
+  Wallet,
+  X,
+} from 'lucide-react';
 import { formatCurrency, formatDate, formatDateTime, formatPhoneNumber } from '@twiga/shared/utils/formatting';
-import { fetchPayments, fetchBookings } from '@/lib/data';
-import type { TwigaPayment, TwigaBooking } from '@twiga/shared/types';
+import {
+  fetchPayments,
+  fetchBookings,
+  subscribeBookings,
+  subscribePayments,
+  updatePaymentStatus,
+  updatePaymentStatusesBulk,
+} from '@/lib/data';
+import type { BookingStatus, PaymentStatus, TwigaPayment, TwigaBooking } from '@twiga/shared/types';
 
 const statusStyles: Record<string, string> = {
-  confirmed: 'bg-green-500/20 text-green-400',
-  initiated: 'bg-yellow-500/20 text-yellow-400',
-  processing: 'bg-blue-500/20 text-blue-400',
-  failed: 'bg-red-500/20 text-red-400',
-  refunded: 'bg-purple-500/20 text-purple-400',
+  confirmed: 'bg-[#e6f2e5] text-[#4d7a4d]',
+  initiated: 'bg-[#fff3df] text-[#9d6c1f]',
+  processing: 'bg-[#e6effa] text-[#3d6494]',
+  failed: 'bg-[#f9e8e6] text-[#aa5447]',
+  refunded: 'bg-[#efe9f7] text-[#6f4b9b]',
 };
 
 const statusLabels: Record<string, string> = {
@@ -44,178 +61,389 @@ export default function PaymentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedPayment, setSelectedPayment] = useState<TwigaPayment | null>(null);
+  const [actionLoading, setActionLoading] = useState<PaymentStatus | null>(null);
+  const [actionError, setActionError] = useState('');
+  const [actionReason, setActionReason] = useState('');
+  const [selectedPaymentIds, setSelectedPaymentIds] = useState<string[]>([]);
+  const [bulkLoading, setBulkLoading] = useState<PaymentStatus | null>(null);
+  const [bulkError, setBulkError] = useState('');
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [paymentData, bookingData] = await Promise.all([
-          fetchPayments(),
-          fetchBookings(),
-        ]);
-        setPayments(paymentData);
-        setBookings(bookingData);
-      } catch {
-        // handled — will show empty state
-      } finally {
-        setLoading(false);
-      }
+    let paymentsReady = false;
+    let bookingsReady = false;
+
+    const completeLoadingIfReady = () => {
+      if (paymentsReady && bookingsReady) setLoading(false);
     };
-    loadData();
+
+    const bootstrap = async () => {
+      const [paymentData, bookingData] = await Promise.all([fetchPayments(), fetchBookings()]);
+      setPayments(paymentData);
+      setBookings(bookingData);
+    };
+
+    void bootstrap();
+
+    const unsubPayments = subscribePayments((data) => {
+      setPayments(data);
+      paymentsReady = true;
+      completeLoadingIfReady();
+    });
+    const unsubBookings = subscribeBookings((data) => {
+      setBookings(data);
+      bookingsReady = true;
+      completeLoadingIfReady();
+    });
+
+    return () => {
+      unsubPayments();
+      unsubBookings();
+    };
   }, []);
 
-  const filteredPayments = payments.filter((p) => {
-    const booking = bookings.find((b) => b.id === p.bookingId);
+  useEffect(() => {
+    setActionLoading(null);
+    setActionError('');
+    setActionReason('');
+  }, [selectedPayment?.id]);
+
+  useEffect(() => {
+    setSelectedPaymentIds((prev) => prev.filter((id) => payments.some((payment) => payment.id === id)));
+  }, [payments]);
+
+  const filteredPayments = payments.filter((payment) => {
+    const booking = bookings.find((b) => b.id === payment.bookingId);
+    const needle = searchQuery.toLowerCase();
     const matchesSearch =
-      p.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.bookingId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.flutterwaveRef.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (booking?.guestName || '').toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
+      payment.id.toLowerCase().includes(needle) ||
+      payment.bookingId.toLowerCase().includes(needle) ||
+      payment.flutterwaveRef.toLowerCase().includes(needle) ||
+      (booking?.guestName || '').toLowerCase().includes(needle);
+    const matchesStatus = statusFilter === 'all' || payment.status === statusFilter;
+
     return matchesSearch && matchesStatus;
   });
 
-  const totalRevenue = payments
-    .filter((p) => p.status === 'confirmed')
-    .reduce((acc, p) => acc + p.amount, 0);
-  const pendingAmount = payments
-    .filter((p) => p.status === 'initiated' || p.status === 'processing')
-    .reduce((acc, p) => acc + p.amount, 0);
-  const refundedAmount = payments
-    .filter((p) => p.status === 'refunded')
-    .reduce((acc, p) => acc + p.amount, 0);
+  const totalRevenue = payments.filter((p) => p.status === 'confirmed').reduce((acc, p) => acc + p.amount, 0);
+  const pendingAmount = payments.filter((p) => p.status === 'initiated' || p.status === 'processing').reduce((acc, p) => acc + p.amount, 0);
+  const refundedAmount = payments.filter((p) => p.status === 'refunded').reduce((acc, p) => acc + p.amount, 0);
 
-  const getGuestName = (bookingId: string) => {
-    const booking = bookings.find((b) => b.id === bookingId);
-    return booking?.guestName || 'Unknown';
+  const getBooking = (bookingId: string) => bookings.find((b) => b.id === bookingId);
+
+  const applyLocalPaymentUpdate = (
+    paymentId: string,
+    status: PaymentStatus,
+    bookingId: string,
+    bookingStatus?: BookingStatus,
+    reason?: string
+  ) => {
+    const now = Date.now();
+    setPayments((prev) =>
+      prev.map((payment) =>
+        payment.id === paymentId
+          ? {
+              ...payment,
+              status,
+              confirmedAt: status === 'confirmed' ? now : payment.confirmedAt,
+              failureReason: status === 'failed' || status === 'refunded' ? reason || payment.failureReason : payment.failureReason,
+            }
+          : payment
+      )
+    );
+    setSelectedPayment((prev) =>
+      prev
+        ? {
+            ...prev,
+            status,
+            confirmedAt: status === 'confirmed' ? now : prev.confirmedAt,
+            failureReason: status === 'failed' || status === 'refunded' ? reason || prev.failureReason : prev.failureReason,
+          }
+        : prev
+    );
+
+    if (bookingStatus) {
+      setBookings((prev) =>
+        prev.map((booking) => {
+          if (booking.id !== bookingId) return booking;
+          const next = { ...booking, status: bookingStatus, updatedAt: now };
+          if (bookingStatus === 'cancelled') {
+            next.cancelledAt = now;
+            next.cancelReason = reason || `Payment ${status}`;
+          }
+          return next;
+        })
+      );
+    }
   };
 
+  const handlePaymentAction = async (status: PaymentStatus) => {
+    if (!selectedPayment) return;
+    if ((status === 'failed' || status === 'refunded') && !actionReason.trim()) {
+      setActionError('Please provide a reason for this action.');
+      return;
+    }
+
+    setActionError('');
+    setActionLoading(status);
+    const reason = actionReason.trim() || undefined;
+
+    const result = await updatePaymentStatus({
+      paymentId: selectedPayment.id,
+      bookingId: selectedPayment.bookingId,
+      status,
+      reason,
+    });
+
+    if (!result.ok) {
+      setActionError('Could not update payment. Check your permissions/connection and try again.');
+      setActionLoading(null);
+      return;
+    }
+
+    applyLocalPaymentUpdate(selectedPayment.id, status, selectedPayment.bookingId, result.bookingStatus, reason);
+    setActionLoading(null);
+  };
+
+  const handleBulkPaymentAction = async (status: PaymentStatus) => {
+    if (selectedPaymentIds.length === 0) return;
+    if ((status === 'failed' || status === 'refunded') && !actionReason.trim()) {
+      setBulkError('Please provide a reason for bulk fail/refund.');
+      return;
+    }
+
+    const reason = actionReason.trim() || undefined;
+    const selectedPayments = payments
+      .filter((payment) => selectedPaymentIds.includes(payment.id))
+      .map((payment) => ({ paymentId: payment.id, bookingId: payment.bookingId }));
+
+    setBulkError('');
+    setBulkLoading(status);
+    const ok = await updatePaymentStatusesBulk(selectedPayments, status, reason);
+
+    if (!ok) {
+      setBulkError('Some payments could not be updated. Please retry.');
+      setBulkLoading(null);
+      return;
+    }
+
+    selectedPayments.forEach((payment) => {
+      const bookingStatus: BookingStatus | undefined =
+        status === 'confirmed'
+          ? 'confirmed'
+          : status === 'failed' || status === 'refunded'
+          ? 'cancelled'
+          : 'pending_payment';
+      applyLocalPaymentUpdate(payment.paymentId, status, payment.bookingId, bookingStatus, reason);
+    });
+    setSelectedPaymentIds([]);
+    setBulkLoading(null);
+  };
+
+  const togglePaymentSelection = (paymentId: string) => {
+    setSelectedPaymentIds((prev) =>
+      prev.includes(paymentId) ? prev.filter((id) => id !== paymentId) : [...prev, paymentId]
+    );
+  };
+
+  const allFilteredSelected =
+    filteredPayments.length > 0 && filteredPayments.every((payment) => selectedPaymentIds.includes(payment.id));
+
   return (
-    <div className="max-w-7xl mx-auto">
-      <motion.div className="mb-8" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-3xl font-bold text-white mb-1">Payment Hub</h1>
-        <p className="text-gray-400">Track and manage all payments</p>
-      </motion.div>
+    <div className="max-w-[1400px] mx-auto space-y-5">
+      <section className="bg-[#f8faf7] border border-[#dfe6dd] rounded-[24px] p-5 md:p-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-[34px] leading-none font-semibold text-[#1f2d23]">Payments</h1>
+            <p className="text-sm text-[#849684] mt-1">Monitor collection, pending transactions, and refunds</p>
+          </div>
 
-      {/* Revenue stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-5">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-gray-400">Total Collected</p>
-            <CheckCircle className="w-5 h-5 text-green-400" />
-          </div>
-          <p className="text-2xl font-bold text-green-400">{formatCurrency(totalRevenue, 'TZS')}</p>
-        </div>
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-5">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-gray-400">Pending</p>
-            <AlertCircle className="w-5 h-5 text-yellow-400" />
-          </div>
-          <p className="text-2xl font-bold text-yellow-400">{formatCurrency(pendingAmount, 'TZS')}</p>
-        </div>
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-5">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-gray-400">Refunded</p>
-            <TrendingUp className="w-5 h-5 text-purple-400" />
-          </div>
-          <p className="text-2xl font-bold text-purple-400">{formatCurrency(refundedAmount, 'TZS')}</p>
-        </div>
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-5">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-gray-400">Total Transactions</p>
-            <CreditCard className="w-5 h-5 text-blue-400" />
-          </div>
-          <p className="text-2xl font-bold text-white">{payments.length}</p>
-        </div>
-      </div>
+          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+            <div className="relative min-w-[260px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#91a192]" />
+              <input
+                type="text"
+                placeholder="Search payment ID, booking, guest..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-10 rounded-xl bg-white border border-[#d8e1d7] pl-9 pr-3 text-sm text-[#2f4032] outline-none focus:border-[#b9cdb7]"
+              />
+            </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by payment ID, booking ID, guest, or ref..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#91a192]" />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="h-10 min-w-[190px] rounded-xl bg-white border border-[#d8e1d7] pl-9 pr-8 text-sm text-[#2f4032] outline-none focus:border-[#b9cdb7] appearance-none"
+              >
+                <option value="all">All statuses</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="initiated">Initiated</option>
+                <option value="processing">Processing</option>
+                <option value="failed">Failed</option>
+                <option value="refunded">Refunded</option>
+              </select>
+            </div>
+          </div>
         </div>
-        <div className="relative">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-8 py-3 text-white appearance-none cursor-pointer focus:ring-2 focus:ring-green-500"
-          >
-            <option value="all">All Statuses</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="initiated">Initiated</option>
-            <option value="processing">Processing</option>
-            <option value="failed">Failed</option>
-            <option value="refunded">Refunded</option>
-          </select>
-        </div>
-      </div>
 
-      {/* Payments table */}
-      <motion.div
-        className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mt-5">
+          <div className="rounded-xl border border-[#d9e3d8] bg-white p-4">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs text-[#8da08e]">Collected</p>
+              <CheckCircle className="w-4 h-4 text-[#4d7a4d]" />
+            </div>
+            <p className="text-2xl font-semibold text-[#2c3d2f]">{formatCurrency(totalRevenue, 'TZS')}</p>
+          </div>
+          <div className="rounded-xl border border-[#d9e3d8] bg-white p-4">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs text-[#8da08e]">Pending</p>
+              <AlertCircle className="w-4 h-4 text-[#9d6c1f]" />
+            </div>
+            <p className="text-2xl font-semibold text-[#2c3d2f]">{formatCurrency(pendingAmount, 'TZS')}</p>
+          </div>
+          <div className="rounded-xl border border-[#d9e3d8] bg-white p-4">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs text-[#8da08e]">Refunded</p>
+              <Wallet className="w-4 h-4 text-[#6f4b9b]" />
+            </div>
+            <p className="text-2xl font-semibold text-[#2c3d2f]">{formatCurrency(refundedAmount, 'TZS')}</p>
+          </div>
+          <div className="rounded-xl border border-[#d9e3d8] bg-white p-4">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs text-[#8da08e]">Transactions</p>
+              <CreditCard className="w-4 h-4 text-[#3d6494]" />
+            </div>
+            <p className="text-2xl font-semibold text-[#2c3d2f]">{payments.length}</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white border border-[#dce5db] rounded-2xl overflow-hidden">
+        {selectedPaymentIds.length > 0 ? (
+          <div className="p-3 border-b border-[#e3ebe2] bg-[#f7fbf6]">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold text-[#446346]">{selectedPaymentIds.length} selected</p>
+              <button
+                onClick={() => handleBulkPaymentAction('confirmed')}
+                disabled={bulkLoading !== null}
+                className="h-8 px-3 rounded-lg border border-[#c9ddca] bg-[#eaf4ea] text-[#3f6e40] text-xs font-semibold disabled:opacity-60"
+              >
+                {bulkLoading === 'confirmed' ? 'Updating...' : 'Bulk Confirm'}
+              </button>
+              <button
+                onClick={() => handleBulkPaymentAction('processing')}
+                disabled={bulkLoading !== null}
+                className="h-8 px-3 rounded-lg border border-[#cad8e8] bg-[#e9f0f8] text-[#3b5f8e] text-xs font-semibold disabled:opacity-60"
+              >
+                {bulkLoading === 'processing' ? 'Updating...' : 'Bulk Processing'}
+              </button>
+              <button
+                onClick={() => handleBulkPaymentAction('failed')}
+                disabled={bulkLoading !== null}
+                className="h-8 px-3 rounded-lg border border-[#ebd0cc] bg-[#f9ece9] text-[#9d4f44] text-xs font-semibold disabled:opacity-60"
+              >
+                {bulkLoading === 'failed' ? 'Updating...' : 'Bulk Fail'}
+              </button>
+              <button
+                onClick={() => handleBulkPaymentAction('refunded')}
+                disabled={bulkLoading !== null}
+                className="h-8 px-3 rounded-lg border border-[#dccfef] bg-[#f2edf9] text-[#6d4c96] text-xs font-semibold disabled:opacity-60"
+              >
+                {bulkLoading === 'refunded' ? 'Updating...' : 'Bulk Refund'}
+              </button>
+              <button
+                onClick={() => setSelectedPaymentIds([])}
+                className="h-8 px-3 rounded-lg border border-[#d8e1d7] bg-white text-[#5f715f] text-xs font-semibold"
+              >
+                Clear
+              </button>
+            </div>
+            <textarea
+              value={actionReason}
+              onChange={(e) => setActionReason(e.target.value)}
+              placeholder="Reason for bulk fail/refund"
+              className="mt-2 w-full min-h-[64px] rounded-lg border border-[#d8e1d7] px-3 py-2 text-sm text-[#2f4032] outline-none focus:border-[#b9cdb7]"
+            />
+            {bulkError ? <p className="mt-1 text-sm text-[#aa5447]">{bulkError}</p> : null}
+          </div>
+        ) : null}
+
         {loading ? (
-          <div className="p-8 space-y-3">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-14 bg-gray-700 rounded animate-pulse" />
+          <div className="p-6 space-y-3">
+            {[...Array(6)].map((_, idx) => (
+              <div key={idx} className="h-12 rounded-lg bg-[#f1f5ef] animate-pulse" />
             ))}
           </div>
         ) : filteredPayments.length === 0 ? (
-          <div className="p-12 text-center text-gray-400">
-            <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium">No payments found</p>
-            <p className="text-sm">Try adjusting your search or filter</p>
-          </div>
+          <div className="p-10 text-center text-[#6c7f6d]">No payments found.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-800/50 border-b border-gray-700">
+              <thead className="bg-[#f5f8f4] border-b border-[#e3ebe2]">
                 <tr>
-                  <th className="text-left py-4 px-4 font-semibold text-gray-400">Payment ID</th>
-                  <th className="text-left py-4 px-4 font-semibold text-gray-400">Guest</th>
-                  <th className="text-left py-4 px-4 font-semibold text-gray-400">Method</th>
-                  <th className="text-left py-4 px-4 font-semibold text-gray-400">Amount</th>
-                  <th className="text-left py-4 px-4 font-semibold text-gray-400">Status</th>
-                  <th className="text-left py-4 px-4 font-semibold text-gray-400">Date</th>
-                  <th className="text-left py-4 px-4 font-semibold text-gray-400"></th>
+                  <th className="text-left py-3 px-4 font-semibold text-[#899a8a]">
+                    <input
+                      type="checkbox"
+                      checked={allFilteredSelected}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedPaymentIds(filteredPayments.map((payment) => payment.id));
+                        } else {
+                          setSelectedPaymentIds([]);
+                        }
+                      }}
+                    />
+                  </th>
+                  <th className="text-left py-3 px-4 font-semibold text-[#899a8a]">Payment</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[#899a8a]">Guest</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[#899a8a]">Method</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[#899a8a]">Amount</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[#899a8a]">Status</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[#899a8a]">Date</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[#899a8a]">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredPayments.map((payment) => {
+                  const booking = getBooking(payment.bookingId);
                   const MethodIcon = methodIcons[payment.method] || CreditCard;
+
                   return (
-                    <tr key={payment.id} className="border-b border-gray-700/50 hover:bg-gray-700/20 transition">
-                      <td className="py-4 px-4 font-mono text-green-400 text-xs">{payment.id}</td>
-                      <td className="py-4 px-4">
-                        <p className="text-white font-medium">{getGuestName(payment.bookingId)}</p>
-                        <p className="text-gray-400 text-xs">{payment.bookingId}</p>
+                    <tr key={payment.id} className="border-b border-[#edf2ec] hover:bg-[#f8fbf7]">
+                      <td className="py-3 px-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedPaymentIds.includes(payment.id)}
+                          onChange={() => togglePaymentSelection(payment.id)}
+                        />
                       </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center space-x-2">
-                          <MethodIcon className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-300">{methodLabels[payment.method]}</span>
-                        </div>
+                      <td className="py-3 px-4">
+                        <p className="font-semibold text-[#2f4032]">#{payment.id}</p>
+                        <p className="text-xs text-[#8da08e]">{payment.flutterwaveRef}</p>
                       </td>
-                      <td className="py-4 px-4 font-semibold text-white">{formatCurrency(payment.amount, payment.currency)}</td>
-                      <td className="py-4 px-4">
+                      <td className="py-3 px-4">
+                        <p className="text-[#2f4032]">{booking?.guestName || 'Unknown'}</p>
+                        <p className="text-xs text-[#8da08e]">{payment.bookingId}</p>
+                      </td>
+                      <td className="py-3 px-4">
+                        <p className="inline-flex items-center gap-2 text-[#617262]">
+                          <MethodIcon className="w-4 h-4" />
+                          {methodLabels[payment.method] || payment.method}
+                        </p>
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-[#2f4032]">{formatCurrency(payment.amount, payment.currency)}</td>
+                      <td className="py-3 px-4">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusStyles[payment.status]}`}>
                           {statusLabels[payment.status]}
                         </span>
                       </td>
-                      <td className="py-4 px-4 text-gray-300 text-xs">{formatDate(payment.createdAt)}</td>
-                      <td className="py-4 px-4">
+                      <td className="py-3 px-4 text-[#617262]">{formatDate(payment.createdAt)}</td>
+                      <td className="py-3 px-4">
                         <button
                           onClick={() => setSelectedPayment(payment)}
-                          className="text-gray-400 hover:text-green-400 transition"
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-[#d7e1d7] text-[#5f715f] hover:bg-[#f0f5ef]"
+                          title="View payment details"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -227,124 +455,93 @@ export default function PaymentsPage() {
             </table>
           </div>
         )}
-      </motion.div>
+      </section>
 
-      {/* Payment Detail Modal */}
       {selectedPayment && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setSelectedPayment(null)}>
-          <motion.div
-            className="bg-gray-800 rounded-xl border border-gray-700 max-w-lg w-full max-h-[90vh] overflow-y-auto"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between p-6 border-b border-gray-700">
+        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm p-4 flex items-center justify-center" onClick={() => setSelectedPayment(null)}>
+          <div className="w-full max-w-xl rounded-2xl border border-[#dce5db] bg-[#fbfdfb] shadow-[0_20px_40px_rgba(24,38,28,0.2)]" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-[#e2eae1] flex items-start justify-between">
               <div>
-                <h3 className="text-xl font-bold text-white">Payment Details</h3>
-                <p className="text-sm font-mono text-green-400">{selectedPayment.id}</p>
+                <p className="text-xs font-semibold tracking-wide uppercase text-[#92a292]">Payment Details</p>
+                <h3 className="text-2xl font-semibold text-[#263427] mt-1">#{selectedPayment.id}</h3>
               </div>
-              <button onClick={() => setSelectedPayment(null)} className="text-gray-400 hover:text-white transition">
-                <X className="w-5 h-5" />
+              <button onClick={() => setSelectedPayment(null)} className="w-9 h-9 rounded-lg border border-[#d7e1d7] text-[#687868] hover:bg-[#f1f6f0]">
+                <X className="w-4 h-4 mx-auto" />
               </button>
             </div>
-            <div className="p-6 space-y-6">
+
+            <div className="p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <span className={`px-4 py-2 rounded-full text-sm font-medium ${statusStyles[selectedPayment.status]}`}>
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusStyles[selectedPayment.status]}`}>
                   {statusLabels[selectedPayment.status]}
                 </span>
-                <span className="text-green-400 text-2xl font-bold">
-                  {formatCurrency(selectedPayment.amount, selectedPayment.currency)}
-                </span>
+                <p className="text-2xl font-semibold text-[#2b3c2d]">{formatCurrency(selectedPayment.amount, selectedPayment.currency)}</p>
               </div>
 
-              <div className="bg-gray-700/30 rounded-lg p-4 space-y-3">
-                <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Payment Info</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-400">Method</p>
-                    <p className="text-white font-medium">{methodLabels[selectedPayment.method]}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">Currency</p>
-                    <p className="text-white font-medium">{selectedPayment.currency}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">Booking</p>
-                    <p className="text-white font-medium font-mono text-xs">{selectedPayment.bookingId}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">Guest</p>
-                    <p className="text-white font-medium">{getGuestName(selectedPayment.bookingId)}</p>
-                  </div>
-                </div>
+              <div className="rounded-xl border border-[#e3ebe2] bg-white p-4 space-y-2 text-sm text-[#5f715f]">
+                <p><span className="text-[#8ea08f]">Booking:</span> {selectedPayment.bookingId}</p>
+                <p><span className="text-[#8ea08f]">Method:</span> {methodLabels[selectedPayment.method]}</p>
+                <p><span className="text-[#8ea08f]">Flutterwave Ref:</span> {selectedPayment.flutterwaveRef}</p>
+                <p><span className="text-[#8ea08f]">Created:</span> {formatDateTime(selectedPayment.createdAt)}</p>
+                <p><span className="text-[#8ea08f]">Confirmed:</span> {selectedPayment.confirmedAt ? formatDateTime(selectedPayment.confirmedAt) : 'N/A'}</p>
               </div>
 
-              <div className="bg-gray-700/30 rounded-lg p-4 space-y-3">
-                <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Flutterwave</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-400">Reference</p>
-                    <p className="text-white font-medium font-mono text-xs">{selectedPayment.flutterwaveRef || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">Webhook</p>
-                    <p className="text-white font-medium">{selectedPayment.webhookReceived ? 'Received' : 'Pending'}</p>
-                  </div>
-                  {selectedPayment.mobileProvider && (
-                    <div>
-                      <p className="text-gray-400">Provider</p>
-                      <p className="text-white font-medium uppercase">{selectedPayment.mobileProvider}</p>
-                    </div>
-                  )}
-                  {selectedPayment.phoneNumber && (
-                    <div>
-                      <p className="text-gray-400">Phone</p>
-                      <p className="text-white font-medium">{formatPhoneNumber(selectedPayment.phoneNumber)}</p>
-                    </div>
-                  )}
-                  {selectedPayment.metadata?.last4 && (
-                    <div>
-                      <p className="text-gray-400">Card</p>
-                      <p className="text-white font-medium">**** {selectedPayment.metadata.last4}</p>
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-gray-400">STK Attempts</p>
-                    <p className="text-white font-medium">{selectedPayment.stkPushAttempts}</p>
-                  </div>
-                </div>
-              </div>
+              {(() => {
+                const booking = getBooking(selectedPayment.bookingId);
+                if (!booking) return null;
 
-              <div className="bg-gray-700/30 rounded-lg p-4 space-y-3">
-                <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Timeline</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Created</span>
-                    <span className="text-white">{formatDateTime(selectedPayment.createdAt)}</span>
+                return (
+                  <div className="rounded-xl border border-[#e3ebe2] bg-white p-4 space-y-2">
+                    <p className="text-xs text-[#93a294] uppercase font-semibold">Guest</p>
+                    <p className="text-lg font-semibold text-[#2b3c2d]">{booking.guestName}</p>
+                    <p className="text-sm text-[#647765]">{booking.guestEmail}</p>
+                    <p className="text-sm text-[#647765]">{formatPhoneNumber(booking.guestPhone)}</p>
                   </div>
-                  {selectedPayment.confirmedAt && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Confirmed</span>
-                      <span className="text-green-400">{formatDateTime(selectedPayment.confirmedAt)}</span>
-                    </div>
-                  )}
-                  {selectedPayment.webhookAt && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Webhook</span>
-                      <span className="text-white">{formatDateTime(selectedPayment.webhookAt)}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
+                );
+              })()}
 
-              {selectedPayment.failureReason && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
-                  <h4 className="text-sm font-semibold text-red-400 mb-1">Failure Reason</h4>
-                  <p className="text-gray-300 text-sm">{selectedPayment.failureReason}</p>
+              <div className="rounded-xl border border-[#e3ebe2] bg-white p-4 space-y-3">
+                <p className="text-xs text-[#93a294] uppercase font-semibold">Admin Actions</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <button
+                    onClick={() => handlePaymentAction('confirmed')}
+                    disabled={actionLoading !== null}
+                    className="h-10 rounded-xl border border-[#c9ddca] bg-[#eaf4ea] text-[#3f6e40] text-sm font-semibold disabled:opacity-60"
+                  >
+                    {actionLoading === 'confirmed' ? 'Updating...' : 'Confirm'}
+                  </button>
+                  <button
+                    onClick={() => handlePaymentAction('processing')}
+                    disabled={actionLoading !== null}
+                    className="h-10 rounded-xl border border-[#cad8e8] bg-[#e9f0f8] text-[#3b5f8e] text-sm font-semibold disabled:opacity-60"
+                  >
+                    {actionLoading === 'processing' ? 'Updating...' : 'Processing'}
+                  </button>
+                  <button
+                    onClick={() => handlePaymentAction('failed')}
+                    disabled={actionLoading !== null}
+                    className="h-10 rounded-xl border border-[#ebd0cc] bg-[#f9ece9] text-[#9d4f44] text-sm font-semibold disabled:opacity-60"
+                  >
+                    {actionLoading === 'failed' ? 'Updating...' : 'Fail'}
+                  </button>
+                  <button
+                    onClick={() => handlePaymentAction('refunded')}
+                    disabled={actionLoading !== null}
+                    className="h-10 rounded-xl border border-[#dccfef] bg-[#f2edf9] text-[#6d4c96] text-sm font-semibold disabled:opacity-60"
+                  >
+                    {actionLoading === 'refunded' ? 'Updating...' : 'Refund'}
+                  </button>
                 </div>
-              )}
+                <textarea
+                  value={actionReason}
+                  onChange={(e) => setActionReason(e.target.value)}
+                  placeholder="Reason required for fail/refund"
+                  className="w-full min-h-[76px] rounded-xl border border-[#d8e1d7] px-3 py-2 text-sm text-[#2f4032] outline-none focus:border-[#b9cdb7]"
+                />
+                {actionError ? <p className="text-sm text-[#aa5447]">{actionError}</p> : null}
+              </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
     </div>

@@ -9,7 +9,7 @@ import {
   Wind,
   Tv,
   ChefHat,
-  Columns3,
+  Columns,
   Phone,
   Mail,
   MessageCircle,
@@ -26,7 +26,7 @@ const amenityIcons: Record<string, React.ElementType> = {
   AC: Wind,
   'Flat screen TV': Tv,
   Kitchen: ChefHat,
-  Balcony: Columns3,
+  Balcony: Columns,
 };
 
 export default function PropertyDetailPage() {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -20,7 +20,7 @@ const stepMeta = [
   { key: 'confirmation', label: 'Confirmed', icon: PartyPopper },
 ] as const;
 
-export default function BookingPage() {
+function BookingPageContent() {
   const searchParams = useSearchParams();
   const [step, setStep] = useState<BookingStep>('details');
   const [rooms, setRooms] = useState<TwigaRoom[]>([]);
@@ -254,5 +254,22 @@ export default function BookingPage() {
         </AnimatePresence>
       </Container>
     </div>
+  );
+}
+
+export default function BookingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen pt-28 pb-20 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-text-muted text-sm">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <BookingPageContent />
+    </Suspense>
   );
 }

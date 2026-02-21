@@ -12,7 +12,7 @@ import {
   Wind,
   Tv,
   ChefHat,
-  Columns3,
+  Columns,
   Calendar,
   ArrowRight,
 } from 'lucide-react';
@@ -27,7 +27,7 @@ const amenityIcons: Record<string, React.ElementType> = {
   AC: Wind,
   'Flat screen TV': Tv,
   Kitchen: ChefHat,
-  Balcony: Columns3,
+  Balcony: Columns,
 };
 
 export default function RoomDetailPage() {

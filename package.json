@@ -4,9 +4,10 @@
   "description": "Property Management System for Twiga Residence",
   "private": true,
   "scripts": {
-    "dev": "turbo run dev --parallel",
-    "build": "turbo run build",
-    "lint": "turbo run lint",
+    "dev": "sh -c 'npm run dev -w apps/web & npm run dev -w apps/admin & wait'",
+    "build": "npm run build -w apps/web && npm run build -w apps/admin",
+    "build:all": "npm run build -w packages/functions && npm run build -w apps/web && npm run build -w apps/admin",
+    "lint": "npm run lint -w apps/web && npm run lint -w apps/admin",
     "deploy:functions": "cd packages/functions && firebase deploy --only functions",
     "deploy:web": "cd apps/web && vercel deploy --prod",
     "deploy:admin": "cd apps/admin && vercel deploy --prod"

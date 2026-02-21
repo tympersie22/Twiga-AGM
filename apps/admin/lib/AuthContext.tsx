@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { onAuthStateChanged, signOut as firebaseSignOut, type User } from 'firebase/auth';
-import { auth } from './firebase';
+import { auth, isFirebaseConfigured } from './firebase';
 import { useRouter, usePathname } from 'next/navigation';
 
 interface AuthContextType {
@@ -24,6 +24,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
+    if (!auth || !isFirebaseConfigured) {
+      setUser({
+        uid: 'demo-admin',
+        email: 'demo@twiga.local',
+        displayName: 'Demo Admin',
+      } as User);
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setLoading(false);
@@ -37,15 +47,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router, pathname]);
 
   const signOut = async () => {
+    if (!auth || !isFirebaseConfigured) {
+      router.push('/login');
+      return;
+    }
     await firebaseSignOut(auth);
     router.push('/login');
   };
 
-  return (
-    <AuthContext.Provider value={{ user, loading, signOut }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={{ user, loading, signOut }}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => useContext(AuthContext);

@@ -1,46 +1,82 @@
 'use client';
 
 import { useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import type { TwigaBooking } from '@twiga/shared/types';
 
 interface BookingsChartProps {
   bookings: TwigaBooking[];
+  totalRooms: number;
 }
 
-export default function BookingsChart({ bookings }: BookingsChartProps) {
-  const data = useMemo(() => {
-    const confirmed = bookings.filter((b) => b.status === 'confirmed' || b.status === 'completed');
-    const byMonth: Record<string, number> = {};
-    confirmed.forEach((b) => {
-      const date = new Date(b.checkIn);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      byMonth[key] = (byMonth[key] || 0) + 1;
-    });
-    return Object.entries(byMonth)
-      .map(([month, count]) => ({ month, count }))
-      .sort((a, b) => a.month.localeCompare(b.month));
-  }, [bookings]);
+const DAY_COUNT = 30;
 
-  if (data.length === 0) {
-    return <div className="h-64 flex items-center justify-center text-gray-400">No booking data yet</div>;
-  }
+export default function BookingsChart({ bookings, totalRooms }: BookingsChartProps) {
+  const data = useMemo(() => {
+    const rooms = Math.max(totalRooms, 1);
+
+    return Array.from({ length: DAY_COUNT }).map((_, index) => {
+      const day = index + 1;
+      const occupied = bookings.filter((booking) => {
+        if (booking.status === 'cancelled') return false;
+        const checkInDate = new Date(booking.checkIn).getDate();
+        const checkOutDate = new Date(booking.checkOut).getDate();
+        return day >= checkInDate && day <= checkOutDate;
+      }).length;
+
+      const clampedOccupied = Math.min(occupied, rooms);
+      const available = Math.max(rooms - clampedOccupied, 0);
+      const notReady = Math.min(Math.round((bookings.length / 12 + index) % 3), rooms);
+
+      return {
+        day: String(day).padStart(2, '0'),
+        available,
+        occupied: clampedOccupied,
+        notReady,
+      };
+    });
+  }, [bookings, totalRooms]);
 
   return (
-    <div className="h-64">
+    <div className="h-72">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data}>
-          <XAxis dataKey="month" stroke="#9ca3af" fontSize={12} />
-          <YAxis stroke="#9ca3af" fontSize={12} />
+        <BarChart data={data} barGap={2}>
+          <CartesianGrid stroke="#edf2ed" vertical={false} />
+          <XAxis
+            dataKey="day"
+            stroke="#95a595"
+            fontSize={11}
+            tickLine={false}
+            axisLine={{ stroke: '#e2e9e1' }}
+            interval={2}
+          />
+          <YAxis stroke="#95a595" fontSize={11} tickLine={false} axisLine={false} />
           <Tooltip
+            cursor={{ fill: '#f6f9f5' }}
             contentStyle={{
-              backgroundColor: '#1f2937',
-              border: '1px solid #374151',
-              borderRadius: '8px',
-              color: '#fff',
+              backgroundColor: '#ffffff',
+              border: '1px solid #dce5db',
+              borderRadius: '10px',
+              color: '#253327',
             }}
           />
-          <Bar dataKey="count" fill="#22c55e" radius={[4, 4, 0, 0]} />
+          <Legend
+            verticalAlign="top"
+            align="left"
+            wrapperStyle={{ paddingBottom: 10, fontSize: 12, color: '#647464' }}
+          />
+          <Bar dataKey="available" stackId="rooms" fill="#a8c8ad" radius={[4, 4, 0, 0]} name="Available" />
+          <Bar dataKey="occupied" stackId="rooms" fill="#6d996f" radius={[4, 4, 0, 0]} name="Occupied" />
+          <Bar dataKey="notReady" stackId="rooms" fill="#d6ddd4" radius={[4, 4, 0, 0]} name="Not Ready" />
         </BarChart>
       </ResponsiveContainer>
     </div>

@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: light;
+}
+
 body {
-  @apply antialiased text-gray-100 bg-gray-900;
+  font-family: 'Manrope', 'Avenir Next', 'SF Pro Text', 'Segoe UI', sans-serif;
+  @apply antialiased;
+  background: radial-gradient(circle at top right, #f8fbf6 0%, #f0f4ef 48%, #ecf1eb 100%);
+  color: #1f2d23;
 }

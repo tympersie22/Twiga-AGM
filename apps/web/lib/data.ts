@@ -1,17 +1,18 @@
-import { db } from './firebase';
+import { db, isFirebaseConfigured } from './firebase';
 import { collection, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
 import { MOCK_ROOMS } from '@twiga/shared';
 import type { TwigaRoom } from '@twiga/shared/types';
 
 const isDemoMode = () => {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-  return !projectId || projectId === 'demo-project' || projectId.startsWith('demo');
+  return !isFirebaseConfigured || !projectId || projectId === 'demo-project' || projectId.startsWith('demo');
 };
 
 const COMPANY_ID = 'twiga-agm';
 
-// Seed rooms to Firestore if the collection is empty
 async function seedRoomsIfEmpty(propertySlug: string): Promise<TwigaRoom[]> {
+  if (!db) return MOCK_ROOMS;
+
   const roomsRef = collection(db, 'companies', COMPANY_ID, 'properties', propertySlug, 'rooms');
   const snapshot = await getDocs(roomsRef);
 
@@ -19,10 +20,8 @@ async function seedRoomsIfEmpty(propertySlug: string): Promise<TwigaRoom[]> {
     return snapshot.docs.map((d) => d.data() as TwigaRoom);
   }
 
-  // Firestore is empty — seed from MOCK_ROOMS
   console.info('[Seed] Writing rooms to Firestore...');
 
-  // Also ensure the property document exists
   const propRef = doc(db, 'companies', COMPANY_ID, 'properties', propertySlug);
   const propSnap = await getDoc(propRef);
   if (!propSnap.exists()) {
@@ -33,7 +32,8 @@ async function seedRoomsIfEmpty(propertySlug: string): Promise<TwigaRoom[]> {
       slug: propertySlug,
       type: 'boutique',
       location: { address: 'Zanzibar', city: 'Zanzibar', country: 'TZ' },
-      description: 'Twiga Residence is a premium boutique property offering 8 beautifully appointed standard rooms and 1 cozy apartment with a kitchen and private balcony.',
+      description:
+        'Twiga Residence is a premium boutique property offering 8 beautifully appointed standard rooms and 1 cozy apartment with a kitchen and private balcony.',
       shortDescription: '8 standard rooms and 1 cozy apartment with kitchen and private balcony.',
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -61,7 +61,7 @@ export async function fetchRooms(propertySlug = 'twiga-residence'): Promise<Twig
 }
 
 export async function fetchRoom(propertySlug: string, roomId: string): Promise<TwigaRoom | null> {
-  if (isDemoMode()) {
+  if (isDemoMode() || !db) {
     return MOCK_ROOMS.find((r) => r.id === roomId) || null;
   }
 
@@ -109,7 +109,7 @@ const MOCK_PROPERTY: PropertySummary = {
 };
 
 export async function fetchProperties(): Promise<PropertySummary[]> {
-  if (isDemoMode()) return [MOCK_PROPERTY];
+  if (isDemoMode() || !db) return [MOCK_PROPERTY];
 
   try {
     const propsRef = collection(db, 'companies', COMPANY_ID, 'properties');
