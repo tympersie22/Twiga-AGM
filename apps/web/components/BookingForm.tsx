@@ -3,14 +3,14 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
-import type { TwigaRoom } from '@twiga/shared/types';
+import type { TwigaRoom } from '@/lib/shared/types';
 import {
   validateBookingDates,
   validateEmail,
   validateTanzanianPhone,
   formatCurrency,
   calculateNights,
-} from '@twiga/shared';
+} from '@/lib/shared';
 
 interface BookingFormProps {
   rooms: TwigaRoom[];

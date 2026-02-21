@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Users, Wifi, Wind, Tv, ChefHat, Columns, ArrowRight } from 'lucide-react';
-import { formatCurrency } from '@twiga/shared/utils/formatting';
-import type { TwigaRoom } from '@twiga/shared/types';
+import { formatCurrency } from '@/lib/shared/formatting';
+import type { TwigaRoom } from '@/lib/shared/types';
 
 const amenityIcons: Record<string, React.ElementType> = {
   WiFi: Wifi,

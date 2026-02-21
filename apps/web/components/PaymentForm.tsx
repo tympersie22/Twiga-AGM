@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CreditCard, Smartphone, Wallet, ChevronDown, Shield } from 'lucide-react';
-import { formatCurrency, formatDate } from '@twiga/shared/utils/formatting';
+import { formatCurrency, formatDate } from '@/lib/shared/formatting';
 import { paymentService } from '@/lib/payment-service';
-import type { TwigaRoom } from '@twiga/shared/types';
+import type { TwigaRoom } from '@/lib/shared/types';
 
 type PaymentMethod = 'mobile_money' | 'card' | 'pay_on_arrival';
 

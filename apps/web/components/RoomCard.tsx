@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import type { TwigaRoom } from '@twiga/shared/types';
-import { formatCurrency } from '@twiga/shared/utils/formatting';
+import type { TwigaRoom } from '@/lib/shared/types';
+import { formatCurrency } from '@/lib/shared/formatting';
 import { Users, Check } from 'lucide-react';
 
 interface RoomCardProps {

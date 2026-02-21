@@ -20,9 +20,9 @@ import {
 import SectionLabel from '@/components/ui/SectionLabel';
 import Container from '@/components/ui/Container';
 import { fetchRoom, fetchProperty, type PropertySummary } from '@/lib/data';
-import { calculateNights, validateBookingDates } from '@twiga/shared';
-import { formatCurrency } from '@twiga/shared/utils/formatting';
-import type { TwigaRoom } from '@twiga/shared/types';
+import { calculateNights, validateBookingDates } from '@/lib/shared';
+import { formatCurrency } from '@/lib/shared/formatting';
+import type { TwigaRoom } from '@/lib/shared/types';
 
 const amenityIcons: Record<string, React.ElementType> = {
   WiFi: Wifi,

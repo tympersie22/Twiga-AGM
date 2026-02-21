@@ -1,6 +1,6 @@
 import { db, isFirebaseConfigured } from './firebase';
 import { doc, setDoc } from 'firebase/firestore';
-import { calculateNights } from '@twiga/shared';
+import { calculateNights } from '@/lib/shared';
 
 export interface InitiatePaymentRequest {
   booking: {

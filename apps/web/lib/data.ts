@@ -1,7 +1,7 @@
 import { db, isFirebaseConfigured } from './firebase';
 import { collection, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
-import { MOCK_ROOMS } from '@twiga/shared';
-import type { TwigaRoom } from '@twiga/shared/types';
+import { MOCK_ROOMS } from '@/lib/shared';
+import type { TwigaRoom } from '@/lib/shared/types';
 
 const isDemoMode = () => {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;

@@ -20,7 +20,7 @@ import SectionLabel from '@/components/ui/SectionLabel';
 import Container from '@/components/ui/Container';
 import RoomCard from '@/components/room/RoomCard';
 import { fetchProperty, fetchRooms, type PropertySummary } from '@/lib/data';
-import type { TwigaRoom } from '@twiga/shared/types';
+import type { TwigaRoom } from '@/lib/shared/types';
 import { contactHref, siteConfig } from '@/lib/site-config';
 
 const amenityIcons: Record<string, React.ElementType> = {

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, ArrowRight, Home } from 'lucide-react';
-import { formatCurrency } from '@twiga/shared/utils/formatting';
+import { formatCurrency } from '@/lib/shared/formatting';
 import type { PropertySummary } from '@/lib/data';
 
 interface PropertyCardProps {

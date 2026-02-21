@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import RoomCard from './RoomCard';
-import type { TwigaRoom } from '@twiga/shared/types';
+import type { TwigaRoom } from '@/lib/shared/types';
 import { fetchRooms } from '@/lib/data';
 
 export default function RoomShowcase() {
