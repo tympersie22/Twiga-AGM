@@ -1,0 +1,57 @@
+import { NextResponse } from 'next/server';
+import {
+  COMPANY_ID,
+  PROPERTY_ID,
+  getActor,
+  getServiceClient,
+  logAdminAction,
+  requireAuthenticatedUser,
+} from '../../../_lib';
+import type { BookingStatus } from '@/lib/shared/types';
+
+export async function PATCH(req: Request, context: { params: Promise<{ bookingId: string }> }) {
+  const auth = await requireAuthenticatedUser(req);
+  if ('error' in auth) return auth.error;
+
+  const service = getServiceClient();
+  if (!service) {
+    return NextResponse.json({ ok: false, error: 'Service role is not configured' }, { status: 500 });
+  }
+
+  const { bookingId } = await context.params;
+  const body = (await req.json()) as { status?: BookingStatus; reason?: string };
+  const status = body.status;
+  const reason = body.reason;
+  if (!bookingId || !status) {
+    return NextResponse.json({ ok: false, error: 'Invalid payload' }, { status: 400 });
+  }
+
+  const now = Date.now();
+  const updateData: Record<string, unknown> = { status, updated_at: now, updatedAt: now };
+  if (status === 'cancelled') {
+    updateData.cancelled_at = now;
+    updateData.cancelledAt = now;
+    updateData.cancel_reason = reason || 'Cancelled by admin';
+    updateData.cancelReason = reason || 'Cancelled by admin';
+  }
+  if (status === 'completed') {
+    updateData.check_in_completed = true;
+    updateData.checkInCompleted = true;
+    updateData.check_in_completed_at = now;
+    updateData.checkInCompletedAt = now;
+  }
+
+  const { error } = await service
+    .from('bookings')
+    .update(updateData)
+    .eq('company_id', COMPANY_ID)
+    .or(`property_id.eq.${PROPERTY_ID},property_slug.eq.${PROPERTY_ID}`)
+    .eq('id', bookingId);
+  if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+
+  await logAdminAction(service, 'booking.status.update', 'booking', bookingId, getActor(auth.user), {
+    status,
+    reason: reason || null,
+  });
+  return NextResponse.json({ ok: true });
+}
