@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Mail, Phone, MapPin, Instagram, Facebook, Globe } from 'lucide-react';
+import { contactHref, siteConfig } from '@/lib/site-config';
 
 const footerLinks = {
   properties: [
@@ -11,8 +12,6 @@ const footerLinks = {
   company: [
     { label: 'About Us', href: '/about' },
     { label: 'Contact', href: '/contact' },
-    { label: 'Careers', href: '/about' },
-    { label: 'Blog', href: '/about' },
   ],
 };
 
@@ -38,7 +37,7 @@ export default function Footer() {
             </p>
             <div className="flex gap-4">
               <a
-                href="https://instagram.com/twiga-agm"
+                href={siteConfig.links.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-full border border-surface-border flex items-center justify-center text-text-muted hover:border-accent hover:text-accent transition-all"
@@ -46,7 +45,7 @@ export default function Footer() {
                 <Instagram className="w-4 h-4" />
               </a>
               <a
-                href="https://facebook.com/twiga-agm"
+                href={siteConfig.links.facebook}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-full border border-surface-border flex items-center justify-center text-text-muted hover:border-accent hover:text-accent transition-all"
@@ -54,7 +53,7 @@ export default function Footer() {
                 <Facebook className="w-4 h-4" />
               </a>
               <a
-                href="https://twiga-agm.com"
+                href={siteConfig.links.website}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-full border border-surface-border flex items-center justify-center text-text-muted hover:border-accent hover:text-accent transition-all"
@@ -104,26 +103,26 @@ export default function Footer() {
             <ul className="space-y-4">
               <li>
                 <a
-                  href="mailto:bookings@twiga-agm.com"
+                  href={contactHref.email}
                   className="flex items-center gap-3 text-sm text-text-muted hover:text-accent transition-colors"
                 >
                   <Mail className="w-4 h-4 text-accent" />
-                  bookings@twiga-agm.com
+                  {siteConfig.contact.email}
                 </a>
               </li>
               <li>
                 <a
-                  href="tel:+255000000000"
+                  href={contactHref.phone}
                   className="flex items-center gap-3 text-sm text-text-muted hover:text-accent transition-colors"
                 >
                   <Phone className="w-4 h-4 text-accent" />
-                  +255 XXX XXX XXX
+                  {siteConfig.contact.phone}
                 </a>
               </li>
               <li>
                 <div className="flex items-start gap-3 text-sm text-text-muted">
                   <MapPin className="w-4 h-4 text-accent mt-0.5" />
-                  Zanzibar, Tanzania
+                  {siteConfig.contact.address}
                 </div>
               </li>
             </ul>

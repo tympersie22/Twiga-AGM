@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   ArrowLeft,
   Users,
@@ -19,6 +20,7 @@ import {
 import SectionLabel from '@/components/ui/SectionLabel';
 import Container from '@/components/ui/Container';
 import { fetchRoom, fetchProperty, type PropertySummary } from '@/lib/data';
+import { calculateNights, validateBookingDates } from '@twiga/shared';
 import { formatCurrency } from '@twiga/shared/utils/formatting';
 import type { TwigaRoom } from '@twiga/shared/types';
 
@@ -42,6 +44,15 @@ export default function RoomDetailPage() {
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [guests, setGuests] = useState(1);
+  const minCheckIn = new Date().toISOString().split('T')[0];
+  const nights =
+    checkIn && checkOut
+      ? calculateNights(new Date(checkIn).getTime(), new Date(checkOut).getTime())
+      : 0;
+  const dateValidation =
+    checkIn && checkOut
+      ? validateBookingDates(new Date(checkIn).getTime(), new Date(checkOut).getTime())
+      : { valid: true };
 
   useEffect(() => {
     const load = async () => {
@@ -62,6 +73,7 @@ export default function RoomDetailPage() {
   }, [slug, roomSlug]);
 
   const handleBookNow = () => {
+    if (!dateValidation.valid || nights <= 0) return;
     const params = new URLSearchParams({ roomId: roomSlug });
     if (checkIn) params.set('checkIn', new Date(checkIn).getTime().toString());
     if (checkOut) params.set('checkOut', new Date(checkOut).getTime().toString());
@@ -124,9 +136,11 @@ export default function RoomDetailPage() {
             {/* Image */}
             <div className="relative h-72 md:h-96 rounded-3xl overflow-hidden bg-surface-light border border-surface-border">
               {room.images?.[0] ? (
-                <img
+                <Image
                   src={room.images[0]}
                   alt={room.name}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 66vw"
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -230,6 +244,7 @@ export default function RoomDetailPage() {
                     type="date"
                     value={checkIn}
                     onChange={(e) => setCheckIn(e.target.value)}
+                    min={minCheckIn}
                     className="input-dark"
                   />
                 </div>
@@ -241,6 +256,7 @@ export default function RoomDetailPage() {
                     type="date"
                     value={checkOut}
                     onChange={(e) => setCheckOut(e.target.value)}
+                    min={checkIn || minCheckIn}
                     className="input-dark"
                   />
                 </div>
@@ -262,46 +278,31 @@ export default function RoomDetailPage() {
                 </div>
               </div>
 
-              {checkIn && checkOut && (
+              {checkIn && checkOut && dateValidation.valid && nights > 0 && (
                 <div className="p-4 bg-surface-lighter rounded-xl border border-surface-border space-y-2 text-sm">
                   <div className="flex justify-between text-text-muted">
-                    <span>
-                      {Math.ceil(
-                        (new Date(checkOut).getTime() - new Date(checkIn).getTime()) /
-                          86400000
-                      )}{' '}
-                      nights
-                    </span>
+                    <span>{nights} nights</span>
                     <span className="text-white font-medium">
-                      {formatCurrency(
-                        room.basePrice *
-                          Math.ceil(
-                            (new Date(checkOut).getTime() - new Date(checkIn).getTime()) /
-                              86400000
-                          ),
-                        'TZS'
-                      )}
+                      {formatCurrency(room.basePrice * nights, 'TZS')}
                     </span>
                   </div>
                   <div className="border-t border-surface-border pt-2 flex justify-between">
                     <span className="font-medium text-white">Total</span>
                     <span className="font-bold text-accent">
-                      {formatCurrency(
-                        room.basePrice *
-                          Math.ceil(
-                            (new Date(checkOut).getTime() - new Date(checkIn).getTime()) /
-                              86400000
-                          ),
-                        'TZS'
-                      )}
+                      {formatCurrency(room.basePrice * nights, 'TZS')}
                     </span>
                   </div>
                 </div>
               )}
 
+              {checkIn && checkOut && !dateValidation.valid && (
+                <p className="text-sm text-red-400">{dateValidation.error || 'Invalid dates selected.'}</p>
+              )}
+
               <button
                 onClick={handleBookNow}
-                className="btn-primary w-full justify-center gap-2"
+                disabled={!dateValidation.valid || nights <= 0}
+                className="btn-primary w-full justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <Calendar className="w-4 h-4" />
                 Book Now

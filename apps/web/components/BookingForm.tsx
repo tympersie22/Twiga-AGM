@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import type { TwigaRoom } from '@twiga/shared/types';
@@ -15,14 +15,24 @@ import {
 interface BookingFormProps {
   rooms: TwigaRoom[];
   selectedRoomId: string | null;
+  initialCheckIn?: string;
+  initialCheckOut?: string;
+  initialGuests?: string;
   onSubmit: (data: Record<string, unknown>) => void;
 }
 
-export default function BookingForm({ rooms, selectedRoomId, onSubmit }: BookingFormProps) {
+export default function BookingForm({
+  rooms,
+  selectedRoomId,
+  initialCheckIn = '',
+  initialCheckOut = '',
+  initialGuests = '1',
+  onSubmit,
+}: BookingFormProps) {
   const [roomId, setRoomId] = useState(selectedRoomId || '');
-  const [checkIn, setCheckIn] = useState('');
-  const [checkOut, setCheckOut] = useState('');
-  const [numberOfGuests, setNumberOfGuests] = useState('1');
+  const [checkIn, setCheckIn] = useState(initialCheckIn);
+  const [checkOut, setCheckOut] = useState(initialCheckOut);
+  const [numberOfGuests, setNumberOfGuests] = useState(initialGuests);
   const [guestName, setGuestName] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
@@ -30,10 +40,27 @@ export default function BookingForm({ rooms, selectedRoomId, onSubmit }: Booking
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (selectedRoomId) setRoomId(selectedRoomId);
+  }, [selectedRoomId]);
+
+  useEffect(() => {
+    if (initialCheckIn) setCheckIn(initialCheckIn);
+  }, [initialCheckIn]);
+
+  useEffect(() => {
+    if (initialCheckOut) setCheckOut(initialCheckOut);
+  }, [initialCheckOut]);
+
+  useEffect(() => {
+    if (initialGuests) setNumberOfGuests(initialGuests);
+  }, [initialGuests]);
+
   const selectedRoom = rooms.find((r) => r.id === roomId);
   const nights =
     checkIn && checkOut ? calculateNights(new Date(checkIn).getTime(), new Date(checkOut).getTime()) : 0;
   const totalPrice = selectedRoom ? selectedRoom.basePrice * nights : 0;
+  const minCheckIn = new Date().toISOString().split('T')[0];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,6 +153,7 @@ export default function BookingForm({ rooms, selectedRoomId, onSubmit }: Booking
                 type="date"
                 value={checkIn}
                 onChange={(e) => setCheckIn(e.target.value)}
+                min={minCheckIn}
                 className="flex-1 bg-transparent text-right text-sm text-white outline-none"
               />
             </div>
@@ -140,6 +168,7 @@ export default function BookingForm({ rooms, selectedRoomId, onSubmit }: Booking
                 type="date"
                 value={checkOut}
                 onChange={(e) => setCheckOut(e.target.value)}
+                min={checkIn || minCheckIn}
                 className="flex-1 bg-transparent text-right text-sm text-white outline-none"
               />
             </div>

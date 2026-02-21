@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight, Building2, Shield, TrendingUp } from 'lucide-react';
 import SectionLabel from '@/components/ui/SectionLabel';
 import Container from '@/components/ui/Container';
@@ -31,9 +32,11 @@ export default function AboutPreview() {
           {/* Left — Image */}
           <div className="relative">
             <div className="aspect-[4/5] rounded-3xl bg-surface-light border border-surface-border overflow-hidden">
-              <img
+              <Image
                 src="https://images.unsplash.com/photo-1540541338287-41700207dee6?w=800&q=80"
                 alt="Zanzibar building exterior"
+                fill
+                sizes="(max-width: 1024px) 100vw, 50vw"
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent" />

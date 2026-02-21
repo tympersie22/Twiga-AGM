@@ -11,6 +11,7 @@ import type { TwigaRoom } from '@twiga/shared/types';
 import { formatCurrency, formatDate } from '@twiga/shared/utils/formatting';
 import { fetchRooms } from '@/lib/data';
 import { ArrowLeft, Check, ClipboardList, CreditCard, PartyPopper, Copy } from 'lucide-react';
+import { contactHref } from '@/lib/site-config';
 
 type BookingStep = 'details' | 'payment' | 'confirmation';
 
@@ -20,11 +21,22 @@ const stepMeta = [
   { key: 'confirmation', label: 'Confirmed', icon: PartyPopper },
 ] as const;
 
+const toDateInputValue = (timestamp: number) => {
+  const date = new Date(timestamp);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 function BookingPageContent() {
   const searchParams = useSearchParams();
   const [step, setStep] = useState<BookingStep>('details');
   const [rooms, setRooms] = useState<TwigaRoom[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
+  const [initialCheckIn, setInitialCheckIn] = useState('');
+  const [initialCheckOut, setInitialCheckOut] = useState('');
+  const [initialGuests, setInitialGuests] = useState('1');
   const [bookingData, setBookingData] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -35,7 +47,19 @@ function BookingPageContent() {
         const data = await fetchRooms();
         setRooms(data);
         const roomId = searchParams.get('roomId');
+        const checkIn = searchParams.get('checkIn');
+        const checkOut = searchParams.get('checkOut');
+        const guests = searchParams.get('guests');
         if (roomId) setSelectedRoom(roomId);
+        if (checkIn && !Number.isNaN(Number(checkIn))) {
+          setInitialCheckIn(toDateInputValue(Number(checkIn)));
+        }
+        if (checkOut && !Number.isNaN(Number(checkOut))) {
+          setInitialCheckOut(toDateInputValue(Number(checkOut)));
+        }
+        if (guests && !Number.isNaN(Number(guests))) {
+          setInitialGuests(String(Math.max(1, Number(guests))));
+        }
       } catch {
         // handled
       } finally {
@@ -76,6 +100,9 @@ function BookingPageContent() {
 
   const selectedRoomData = bookingData ? rooms.find((r) => r.id === bookingData.roomId) : null;
   const currentStepIndex = stepMeta.findIndex((s) => s.key === step);
+  const paymentStatus = String(bookingData?.paymentStatus || '');
+  const isPaymentPending = paymentStatus === 'payment_pending';
+  const isPayOnArrival = paymentStatus === 'pending_approval';
 
   return (
     <div className="min-h-screen pt-28 pb-20">
@@ -136,6 +163,9 @@ function BookingPageContent() {
               <BookingForm
                 rooms={rooms}
                 selectedRoomId={selectedRoom}
+                initialCheckIn={initialCheckIn}
+                initialCheckOut={initialCheckOut}
+                initialGuests={initialGuests}
                 onSubmit={handleDetailsSubmit}
               />
             </motion.div>
@@ -174,9 +204,15 @@ function BookingPageContent() {
                   >
                     <Check className="w-7 h-7 text-green-400" />
                   </motion.div>
-                  <h2 className="text-xl font-semibold text-white mb-1">Booking Confirmed</h2>
+                  <h2 className="text-xl font-semibold text-white mb-1">
+                    {isPaymentPending ? 'Booking Received' : isPayOnArrival ? 'Booking Reserved' : 'Booking Confirmed'}
+                  </h2>
                   <p className="text-text-muted text-sm">
-                    Confirmation sent to {String(bookingData?.guestEmail)}
+                    {isPaymentPending
+                      ? 'We will confirm your payment shortly.'
+                      : isPayOnArrival
+                      ? 'Your reservation is saved. Please pay at check-in.'
+                      : `Confirmation sent to ${String(bookingData?.guestEmail)}`}
                   </p>
                 </div>
 
@@ -234,7 +270,7 @@ function BookingPageContent() {
                   transition={{ delay: 0.4 }}
                 >
                   <a
-                    href="https://wa.me/255000000000"
+                    href={contactHref.whatsapp}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 bg-green-600 hover:bg-green-500 text-white font-medium py-2.5 rounded-xl text-sm transition-all active:scale-[0.98] text-center"

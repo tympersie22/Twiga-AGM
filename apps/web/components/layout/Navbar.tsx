@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 
 const navLinks = [
@@ -14,6 +15,7 @@ const navLinks = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -48,7 +50,9 @@ export default function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm text-text-secondary hover:text-white transition-colors duration-200 tracking-wide"
+                className={`text-sm transition-colors duration-200 tracking-wide ${
+                  pathname === link.href ? 'text-accent' : 'text-text-secondary hover:text-white'
+                }`}
               >
                 {link.label}
               </Link>
@@ -67,6 +71,8 @@ export default function Navbar() {
             onClick={() => setMobileOpen(!mobileOpen)}
             className="md:hidden text-white p-2"
             aria-label="Toggle menu"
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-nav-menu"
           >
             {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -74,14 +80,16 @@ export default function Navbar() {
 
         {/* Mobile Menu */}
         {mobileOpen && (
-          <div className="md:hidden mt-6 pb-6 border-t border-white/10 pt-6">
+          <div id="mobile-nav-menu" className="md:hidden mt-6 pb-6 border-t border-white/10 pt-6">
             <div className="flex flex-col gap-4">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
                   onClick={() => setMobileOpen(false)}
-                  className="text-lg text-text-secondary hover:text-white transition-colors"
+                  className={`text-lg transition-colors ${
+                    pathname === link.href ? 'text-accent' : 'text-text-secondary hover:text-white'
+                  }`}
                 >
                   {link.label}
                 </Link>

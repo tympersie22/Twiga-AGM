@@ -31,7 +31,7 @@ async function seedRoomsIfEmpty(propertySlug: string): Promise<TwigaRoom[]> {
       name: 'Twiga Residence',
       slug: propertySlug,
       type: 'boutique',
-      location: { address: 'Zanzibar', city: 'Zanzibar', country: 'TZ' },
+      location: { address: 'Zanzibar', city: 'Zanzibar', country: 'Tanzania' },
       description:
         'Twiga Residence is a premium boutique property offering 8 beautifully appointed standard rooms and 1 cozy apartment with a kitchen and private balcony.',
       shortDescription: '8 standard rooms and 1 cozy apartment with kitchen and private balcony.',
@@ -99,13 +99,13 @@ const MOCK_PROPERTY: PropertySummary = {
   location: {
     address: 'Zanzibar',
     city: 'Zanzibar',
-    country: 'TZ',
+    country: 'Tanzania',
   },
   description:
     'Twiga Residence is a premium boutique property offering 8 beautifully appointed standard rooms and 1 cozy apartment with a kitchen and private balcony. Located in the heart of Zanzibar, it provides modern amenities, exceptional comfort, and a warm Zanzibari welcome.',
   shortDescription: '8 standard rooms and 1 cozy apartment with kitchen and private balcony.',
   totalRooms: 9,
-  priceFrom: 15000000,
+  priceFrom: 150000,
 };
 
 export async function fetchProperties(): Promise<PropertySummary[]> {
@@ -129,7 +129,7 @@ export async function fetchProperties(): Promise<PropertySummary[]> {
         name: data.name || docSnap.id,
         slug: data.slug || docSnap.id,
         type: data.type || 'boutique',
-        location: data.location || { address: '', city: 'Zanzibar', country: 'TZ' },
+        location: data.location || { address: '', city: 'Zanzibar', country: 'Tanzania' },
         description: data.description || MOCK_PROPERTY.description,
         shortDescription: data.shortDescription || MOCK_PROPERTY.shortDescription,
         totalRooms: rooms.length,

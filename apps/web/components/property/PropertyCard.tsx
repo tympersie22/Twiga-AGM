@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { MapPin, ArrowRight, Home } from 'lucide-react';
 import { formatCurrency } from '@twiga/shared/utils/formatting';
 import type { PropertySummary } from '@/lib/data';
@@ -17,9 +18,11 @@ export default function PropertyCard({ property }: PropertyCardProps) {
     >
       {/* Image area */}
       <div className="relative h-64 overflow-hidden">
-        <img
+        <Image
           src="https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=800&q=80"
           alt={property.name}
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent group-hover:from-accent/10 transition-all duration-500" />

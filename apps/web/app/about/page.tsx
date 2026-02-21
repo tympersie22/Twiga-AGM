@@ -1,4 +1,5 @@
 import { Shield, TrendingUp, Heart, Target } from 'lucide-react';
+import Image from 'next/image';
 import SectionLabel from '@/components/ui/SectionLabel';
 import Container from '@/components/ui/Container';
 import Stats from '@/components/home/Stats';
@@ -82,9 +83,11 @@ export default function AboutPage() {
             </div>
             <div className="relative">
               <div className="aspect-square rounded-3xl bg-surface-light border border-surface-border overflow-hidden">
-                <img
+                <Image
                   src="https://images.unsplash.com/photo-1523805009345-7448845a9e53?w=800&q=80"
                   alt="Zanzibar architecture"
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 50vw"
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent" />

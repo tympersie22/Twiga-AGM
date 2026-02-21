@@ -2,24 +2,28 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 export default function QuickBooking() {
+  const router = useRouter();
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [guests, setGuests] = useState('1');
+  const [error, setError] = useState('');
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!checkIn || !checkOut) {
-      alert('Please select both dates');
+      setError('Please select both check-in and check-out dates.');
       return;
     }
+    setError('');
     const params = new URLSearchParams({
       checkIn: new Date(checkIn).getTime().toString(),
       checkOut: new Date(checkOut).getTime().toString(),
       guests,
     });
-    window.location.href = `/booking?${params.toString()}`;
+    router.push(`/booking?${params.toString()}`);
   };
 
   return (
@@ -71,6 +75,7 @@ export default function QuickBooking() {
           </button>
         </div>
       </form>
+      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
     </motion.div>
   );
 }

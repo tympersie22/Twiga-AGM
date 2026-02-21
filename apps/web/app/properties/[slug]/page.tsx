@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   MapPin,
   Wifi,
@@ -20,6 +21,7 @@ import Container from '@/components/ui/Container';
 import RoomCard from '@/components/room/RoomCard';
 import { fetchProperty, fetchRooms, type PropertySummary } from '@/lib/data';
 import type { TwigaRoom } from '@twiga/shared/types';
+import { contactHref, siteConfig } from '@/lib/site-config';
 
 const amenityIcons: Record<string, React.ElementType> = {
   WiFi: Wifi,
@@ -56,6 +58,7 @@ export default function PropertyDetailPage() {
 
   // Collect all unique amenities from rooms
   const allAmenities = [...new Set(rooms.flatMap((r) => r.amenities))];
+  const countryLabel = property?.location.country === 'TZ' ? 'Tanzania' : property?.location.country;
 
   if (loading) {
     return (
@@ -101,9 +104,11 @@ export default function PropertyDetailPage() {
 
         {/* Hero */}
         <div className="relative h-72 md:h-96 rounded-3xl overflow-hidden mb-12 bg-surface-light border border-surface-border">
-          <img
+          <Image
             src="https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=1200&q=80"
             alt={property.name}
+            fill
+            sizes="100vw"
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent" />
@@ -120,7 +125,7 @@ export default function PropertyDetailPage() {
             </h1>
             <div className="flex items-center gap-2 text-text-muted">
               <MapPin className="w-4 h-4 text-accent" />
-              <span>{property.location.city}, {property.location.country}</span>
+              <span>{property.location.city}, {countryLabel}</span>
             </div>
           </div>
         </div>
@@ -186,7 +191,7 @@ export default function PropertyDetailPage() {
           </h2>
           <div className="grid md:grid-cols-3 gap-4">
             <a
-              href="tel:+255000000000"
+              href={contactHref.phone}
               className="flex items-center gap-4 p-6 card-dark"
             >
               <div className="w-12 h-12 rounded-xl bg-accent-muted flex items-center justify-center">
@@ -194,11 +199,11 @@ export default function PropertyDetailPage() {
               </div>
               <div>
                 <p className="text-xs text-text-muted font-mono mb-1">Phone</p>
-                <p className="text-white font-medium">+255 XXX XXX XXX</p>
+                <p className="text-white font-medium">{siteConfig.contact.phone}</p>
               </div>
             </a>
             <a
-              href="mailto:bookings@twiga-agm.com"
+              href={contactHref.email}
               className="flex items-center gap-4 p-6 card-dark"
             >
               <div className="w-12 h-12 rounded-xl bg-accent-muted flex items-center justify-center">
@@ -206,11 +211,11 @@ export default function PropertyDetailPage() {
               </div>
               <div>
                 <p className="text-xs text-text-muted font-mono mb-1">Email</p>
-                <p className="text-white font-medium">bookings@twiga-agm.com</p>
+                <p className="text-white font-medium">{siteConfig.contact.email}</p>
               </div>
             </a>
             <a
-              href="https://wa.me/255000000000"
+              href={contactHref.whatsapp}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-4 p-6 card-dark"

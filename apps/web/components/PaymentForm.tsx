@@ -50,6 +50,8 @@ export default function PaymentForm({ booking, rooms, onSuccess, onBack }: Payme
         });
         if (result && typeof result === 'object' && 'bookingId' in result) {
           (booking as Record<string, unknown>).bookingId = (result as { bookingId: string }).bookingId;
+          (booking as Record<string, unknown>).paymentStatus =
+            (result as { status?: string }).status || 'pending_approval';
         }
         onSuccess();
         return;
@@ -84,6 +86,8 @@ export default function PaymentForm({ booking, rooms, onSuccess, onBack }: Payme
       }
       if (data?.bookingId) {
         (booking as Record<string, unknown>).bookingId = data.bookingId;
+        (booking as Record<string, unknown>).paymentStatus =
+          (result as { status?: string }).status || 'payment_pending';
         onSuccess();
       } else {
         setError('Failed to start payment. Please try again.');

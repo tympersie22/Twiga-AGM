@@ -4,30 +4,32 @@ import { useState } from 'react';
 import { Mail, Phone, MapPin, MessageCircle, Send } from 'lucide-react';
 import SectionLabel from '@/components/ui/SectionLabel';
 import Container from '@/components/ui/Container';
+import { submitContactInquiry } from '@/lib/contact-service';
+import { contactHref, siteConfig } from '@/lib/site-config';
 
 const contactInfo = [
   {
     icon: Phone,
     title: 'Phone',
-    value: '+255 XXX XXX XXX',
-    href: 'tel:+255000000000',
+    value: siteConfig.contact.phone,
+    href: contactHref.phone,
   },
   {
     icon: Mail,
     title: 'Email',
-    value: 'bookings@twiga-agm.com',
-    href: 'mailto:bookings@twiga-agm.com',
+    value: siteConfig.contact.email,
+    href: contactHref.email,
   },
   {
     icon: MessageCircle,
     title: 'WhatsApp',
     value: 'Chat with us',
-    href: 'https://wa.me/255000000000',
+    href: contactHref.whatsapp,
   },
   {
     icon: MapPin,
     title: 'Address',
-    value: 'Zanzibar, Tanzania',
+    value: siteConfig.contact.address,
     href: '#',
   },
 ];
@@ -40,10 +42,21 @@ export default function ContactPage() {
     message: '',
   });
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setSubmitting(true);
+    setError('');
+    try {
+      await submitContactInquiry(formData);
+      setSubmitted(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send message. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -76,6 +89,7 @@ export default function ContactPage() {
                 <button
                   onClick={() => {
                     setSubmitted(false);
+                    setError('');
                     setFormData({ name: '', email: '', subject: '', message: '' });
                   }}
                   className="btn-outline"
@@ -147,10 +161,15 @@ export default function ContactPage() {
                     required
                   />
                 </div>
-                <button type="submit" className="btn-primary w-full justify-center gap-2">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="btn-primary w-full justify-center gap-2 disabled:opacity-70"
+                >
                   <Send className="w-4 h-4" />
-                  Send Message
+                  {submitting ? 'Sending...' : 'Send Message'}
                 </button>
+                {error && <p className="text-sm text-red-400">{error}</p>}
               </form>
             )}
           </div>
@@ -158,21 +177,33 @@ export default function ContactPage() {
           {/* Contact Info */}
           <div className="lg:col-span-2 space-y-4">
             {contactInfo.map((info) => (
-              <a
-                key={info.title}
-                href={info.href}
-                target={info.href.startsWith('http') ? '_blank' : undefined}
-                rel={info.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                className="flex items-center gap-4 p-6 card-dark group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-accent-muted flex items-center justify-center shrink-0 group-hover:bg-accent/20 transition-colors">
-                  <info.icon className="w-5 h-5 text-accent" />
+              info.href === '#' ? (
+                <div key={info.title} className="flex items-center gap-4 p-6 card-dark group">
+                  <div className="w-12 h-12 rounded-xl bg-accent-muted flex items-center justify-center shrink-0 group-hover:bg-accent/20 transition-colors">
+                    <info.icon className="w-5 h-5 text-accent" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-text-muted font-mono mb-1">{info.title}</p>
+                    <p className="text-white font-medium">{info.value}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-text-muted font-mono mb-1">{info.title}</p>
-                  <p className="text-white font-medium">{info.value}</p>
-                </div>
-              </a>
+              ) : (
+                <a
+                  key={info.title}
+                  href={info.href}
+                  target={info.href.startsWith('http') ? '_blank' : undefined}
+                  rel={info.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                  className="flex items-center gap-4 p-6 card-dark group"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-accent-muted flex items-center justify-center shrink-0 group-hover:bg-accent/20 transition-colors">
+                    <info.icon className="w-5 h-5 text-accent" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-text-muted font-mono mb-1">{info.title}</p>
+                    <p className="text-white font-medium">{info.value}</p>
+                  </div>
+                </a>
+              )
             ))}
 
             {/* Office hours */}

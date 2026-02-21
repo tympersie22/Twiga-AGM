@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight, MapPin, Home } from 'lucide-react';
 import SectionLabel from '@/components/ui/SectionLabel';
 import Container from '@/components/ui/Container';
@@ -57,9 +58,11 @@ export default function FeaturedProperties() {
               {/* Image area */}
               <div className="relative h-64 md:h-72">
                 {!property.comingSoon ? (
-                  <img
+                  <Image
                     src="https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=800&q=80"
                     alt={property.name}
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
                     className="w-full h-full object-cover"
                   />
                 ) : (

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Users, Wifi, Wind, Tv, ChefHat, Columns, ArrowRight } from 'lucide-react';
 import { formatCurrency } from '@twiga/shared/utils/formatting';
 import type { TwigaRoom } from '@twiga/shared/types';
@@ -28,9 +29,11 @@ export default function RoomCard({ room, propertySlug }: RoomCardProps) {
       <div className="relative h-52 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-surface-lighter to-surface-light" />
         {room.images?.[0] ? (
-          <img
+          <Image
             src={room.images[0]}
             alt={room.name}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           />
         ) : (

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import type { TwigaRoom } from '@twiga/shared/types';
 import { formatCurrency } from '@twiga/shared/utils/formatting';
 import { Users, Check } from 'lucide-react';
@@ -14,9 +15,11 @@ export default function RoomCard({ room }: RoomCardProps) {
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition group">
       <div className="relative h-48 bg-gray-200 overflow-hidden">
         {room.images?.[0] ? (
-          <img
+          <Image
             src={room.images[0]}
             alt={room.name}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="w-full h-full object-cover group-hover:scale-110 transition duration-300"
           />
         ) : (

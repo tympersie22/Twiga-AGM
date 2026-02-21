@@ -46,8 +46,8 @@ export const paymentService = {
     const depositAmount = Math.ceil((totalPrice * data.depositPercentage) / 100);
 
     const isPayOnArrival = data.paymentMethod === 'pay_on_arrival';
-    const bookingStatus = isPayOnArrival ? 'pay_on_arrival' : 'confirmed';
-    const paymentStatus = isPayOnArrival ? 'initiated' : 'confirmed';
+    const bookingStatus = isPayOnArrival ? 'pay_on_arrival' : 'pending_payment';
+    const paymentStatus = 'initiated';
 
     const bookingDoc: Record<string, unknown> = {
       id: bookingId,
@@ -98,10 +98,6 @@ export const paymentService = {
     if (data.phoneNumber) {
       paymentDoc.phoneNumber = data.phoneNumber;
     }
-    if (paymentStatus === 'confirmed') {
-      paymentDoc.confirmedAt = now;
-    }
-
     if (isFirebaseConfigured && db) {
       const bookingRef = doc(db, 'companies', COMPANY_ID, 'properties', PROPERTY_ID, 'bookings', bookingId);
       await setDoc(bookingRef, bookingDoc);
@@ -126,10 +122,11 @@ export const paymentService = {
 
     return {
       bookingId,
-      status: isPayOnArrival ? 'pending_approval' : 'confirmed',
+      paymentId,
+      status: isPayOnArrival ? 'pending_approval' : 'payment_pending',
       message: isPayOnArrival
         ? `Booking ${bookingId} created. Pay on arrival confirmed.`
-        : `Booking ${bookingId} confirmed. Payment processed.`,
+        : `Booking ${bookingId} created. Payment is pending confirmation.`,
     };
   },
 
