@@ -15,6 +15,7 @@ import { MOCK_BOOKINGS, MOCK_ROOMS, MOCK_PAYMENTS } from '@/lib/shared';
 import type { TwigaBooking, TwigaRoom, TwigaPayment } from '@/lib/shared/types';
 import type { BookingStatus, PaymentStatus } from '@/lib/shared/types';
 import { auth } from './firebase';
+import { isSupabaseConfigured, supabase } from './supabase';
 
 const COMPANY_ID = 'twiga-agm';
 const PROPERTY_ID = 'twiga-residence';
@@ -24,7 +25,9 @@ const sortByCreatedDesc = <T extends { createdAt?: number }>(items: T[]) =>
 
 const isDemoMode = () => {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-  return !isFirebaseConfigured || !projectId || projectId === 'demo-project' || projectId.startsWith('demo');
+  const firebaseUnavailable =
+    !isFirebaseConfigured || !projectId || projectId === 'demo-project' || projectId.startsWith('demo');
+  return firebaseUnavailable && !isSupabaseConfigured;
 };
 
 export interface AdminLogEntry {
@@ -42,6 +45,77 @@ export interface AdminLogEntry {
   createdAt: number;
 }
 
+const normalizeRoom = (row: Record<string, unknown>): TwigaRoom => ({
+  id: String(row.id || ''),
+  name: String(row.name || 'Room'),
+  type: (row.type as TwigaRoom['type']) || 'standard',
+  maxGuests: Number(row.maxGuests ?? row.max_guests ?? 2),
+  basePrice: Number(row.basePrice ?? row.base_price ?? 0),
+  amenities: Array.isArray(row.amenities) ? (row.amenities as string[]) : [],
+  images: Array.isArray(row.images) ? (row.images as string[]) : [],
+  description: String(row.description || ''),
+  bedroomCount: Number(row.bedroomCount ?? row.bedroom_count ?? 1),
+  bathroomCount: Number(row.bathroomCount ?? row.bathroom_count ?? 1),
+});
+
+const normalizeBooking = (row: Record<string, unknown>): TwigaBooking => ({
+  id: String(row.id || ''),
+  propertyId: String(row.propertyId ?? row.property_id ?? PROPERTY_ID),
+  guestName: String(row.guestName ?? row.guest_name ?? ''),
+  guestEmail: String(row.guestEmail ?? row.guest_email ?? ''),
+  guestPhone: String(row.guestPhone ?? row.guest_phone ?? ''),
+  roomId: String(row.roomId ?? row.room_id ?? ''),
+  checkIn: Number(row.checkIn ?? row.check_in ?? 0),
+  checkOut: Number(row.checkOut ?? row.check_out ?? 0),
+  pickupTime: row.pickupTime ? String(row.pickupTime) : undefined,
+  numberOfGuests: Number(row.numberOfGuests ?? row.number_of_guests ?? 1),
+  totalNights: Number(row.totalNights ?? row.total_nights ?? 1),
+  roomPrice: Number(row.roomPrice ?? row.room_price ?? 0),
+  totalPrice: Number(row.totalPrice ?? row.total_price ?? 0),
+  paymentId: String(row.paymentId ?? row.payment_id ?? ''),
+  source: (row.source as TwigaBooking['source']) || 'direct',
+  status: (row.status as BookingStatus) || 'pending_payment',
+  notes: row.notes ? String(row.notes) : undefined,
+  specialRequests: row.specialRequests ? String(row.specialRequests) : undefined,
+  createdAt: Number(row.createdAt ?? row.created_at ?? Date.now()),
+  updatedAt: Number(row.updatedAt ?? row.updated_at ?? Date.now()),
+  cancelledAt: row.cancelledAt ? Number(row.cancelledAt) : undefined,
+  cancelReason: row.cancelReason ? String(row.cancelReason) : undefined,
+  checkInCompleted: row.checkInCompleted as boolean | undefined,
+  checkInCompletedAt: row.checkInCompletedAt ? Number(row.checkInCompletedAt) : undefined,
+});
+
+const normalizePayment = (row: Record<string, unknown>): TwigaPayment => ({
+  id: String(row.id || ''),
+  bookingId: String(row.bookingId ?? row.booking_id ?? ''),
+  propertyId: String(row.propertyId ?? row.property_id ?? PROPERTY_ID),
+  amount: Number(row.amount ?? 0),
+  currency: (row.currency as TwigaPayment['currency']) || 'TZS',
+  method: (row.method as TwigaPayment['method']) || 'mobile_money',
+  flutterwaveRef: String(row.flutterwaveRef ?? row.flutterwave_ref ?? ''),
+  idempotencyKey: String(row.idempotencyKey ?? row.idempotency_key ?? ''),
+  status: (row.status as PaymentStatus) || 'initiated',
+  mobileProvider: (row.mobileProvider as TwigaPayment['mobileProvider']) || null,
+  phoneNumber: row.phoneNumber ? String(row.phoneNumber) : undefined,
+  stkPushAttempts: Number(row.stkPushAttempts ?? row.stk_push_attempts ?? 0),
+  webhookReceived: Boolean(row.webhookReceived ?? row.webhook_received ?? false),
+  webhookAt: row.webhookAt ? Number(row.webhookAt) : undefined,
+  createdAt: Number(row.createdAt ?? row.created_at ?? Date.now()),
+  confirmedAt: row.confirmedAt ? Number(row.confirmedAt) : undefined,
+  failureReason: row.failureReason ? String(row.failureReason) : undefined,
+  metadata: (row.metadata as TwigaPayment['metadata']) || {},
+});
+
+async function fetchSupabaseRows(table: string) {
+  if (!isSupabaseConfigured || !supabase) return null;
+  const { data, error } = await supabase.from(table).select('*').eq('company_id', COMPANY_ID);
+  if (error || !data) return null;
+  return (data as Record<string, unknown>[]).filter((row) => {
+    const propertyId = String(row.property_id || row.propertyId || row.property_slug || row.propertySlug || '');
+    return propertyId ? propertyId === PROPERTY_ID : true;
+  });
+}
+
 async function seedRoomsIfEmpty(): Promise<void> {
   if (!db) return;
 
@@ -52,7 +126,16 @@ async function seedRoomsIfEmpty(): Promise<void> {
 }
 
 export async function fetchBookings(): Promise<TwigaBooking[]> {
-  if (isDemoMode() || !db) return sortByCreatedDesc(MOCK_BOOKINGS);
+  if (isDemoMode()) return sortByCreatedDesc(MOCK_BOOKINGS);
+
+  try {
+    const rows = await fetchSupabaseRows('bookings');
+    if (rows && rows.length > 0) return sortByCreatedDesc(rows.map(normalizeBooking));
+  } catch {
+    // Continue to Firestore fallback.
+  }
+
+  if (!db) return sortByCreatedDesc(MOCK_BOOKINGS);
 
   try {
     const bookingsRef = collection(db, 'companies', COMPANY_ID, 'properties', PROPERTY_ID, 'bookings');
@@ -65,7 +148,16 @@ export async function fetchBookings(): Promise<TwigaBooking[]> {
 }
 
 export async function fetchRooms(): Promise<TwigaRoom[]> {
-  if (isDemoMode() || !db) return MOCK_ROOMS;
+  if (isDemoMode()) return MOCK_ROOMS;
+
+  try {
+    const rows = await fetchSupabaseRows('rooms');
+    if (rows && rows.length > 0) return rows.map(normalizeRoom);
+  } catch {
+    // Continue to Firestore fallback.
+  }
+
+  if (!db) return MOCK_ROOMS;
 
   try {
     const roomsRef = collection(db, 'companies', COMPANY_ID, 'properties', PROPERTY_ID, 'rooms');
@@ -83,7 +175,16 @@ export async function fetchRooms(): Promise<TwigaRoom[]> {
 }
 
 export async function fetchPayments(): Promise<TwigaPayment[]> {
-  if (isDemoMode() || !db) return sortByCreatedDesc(MOCK_PAYMENTS);
+  if (isDemoMode()) return sortByCreatedDesc(MOCK_PAYMENTS);
+
+  try {
+    const rows = await fetchSupabaseRows('payments');
+    if (rows && rows.length > 0) return sortByCreatedDesc(rows.map(normalizePayment));
+  } catch {
+    // Continue to Firestore fallback.
+  }
+
+  if (!db) return sortByCreatedDesc(MOCK_PAYMENTS);
 
   try {
     const paymentsQuery = query(collectionGroup(db, 'payments'), where('propertyId', '==', PROPERTY_ID));
@@ -97,7 +198,33 @@ export async function fetchPayments(): Promise<TwigaPayment[]> {
 }
 
 export async function fetchAdminLogs(): Promise<AdminLogEntry[]> {
-  if (isDemoMode() || !db) return [];
+  if (isDemoMode()) return [];
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('admin_logs')
+        .select('*')
+        .eq('company_id', COMPANY_ID)
+        .order('created_at', { ascending: false });
+      if (!error && data) {
+        return data.map((row) => ({
+          id: String(row.id || ''),
+          action: String(row.action || ''),
+          entityType: String(row.entity_type || row.entityType || ''),
+          entityId: String(row.entity_id || row.entityId || ''),
+          propertyId: String(row.property_id || row.propertyId || ''),
+          actor: (row.actor as AdminLogEntry['actor']) || undefined,
+          metadata: (row.metadata as Record<string, unknown>) || {},
+          createdAt: Number(row.created_at || row.createdAt || Date.now()),
+        }));
+      }
+    } catch {
+      // Continue to Firestore fallback.
+    }
+  }
+
+  if (!db) return [];
 
   try {
     const logsRef = collection(db, 'companies', COMPANY_ID, 'adminLogs');
@@ -115,7 +242,31 @@ export function subscribeBookings(
   onData: (bookings: TwigaBooking[]) => void,
   onError?: (err: unknown) => void
 ): () => void {
-  if (isDemoMode() || !db) {
+  if (isDemoMode()) {
+    onData(sortByCreatedDesc(MOCK_BOOKINGS));
+    return () => {};
+  }
+
+  if (isSupabaseConfigured && !db) {
+    let active = true;
+    const run = async () => {
+      try {
+        const bookings = await fetchBookings();
+        if (active) onData(bookings);
+      } catch (err) {
+        onData(sortByCreatedDesc(MOCK_BOOKINGS));
+        onError?.(err);
+      }
+    };
+    void run();
+    const interval = setInterval(() => void run(), 10000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }
+
+  if (!db) {
     onData(sortByCreatedDesc(MOCK_BOOKINGS));
     return () => {};
   }
@@ -141,7 +292,31 @@ export function subscribeRooms(
   onData: (rooms: TwigaRoom[]) => void,
   onError?: (err: unknown) => void
 ): () => void {
-  if (isDemoMode() || !db) {
+  if (isDemoMode()) {
+    onData(MOCK_ROOMS);
+    return () => {};
+  }
+
+  if (isSupabaseConfigured && !db) {
+    let active = true;
+    const run = async () => {
+      try {
+        const rooms = await fetchRooms();
+        if (active) onData(rooms);
+      } catch (err) {
+        onData(MOCK_ROOMS);
+        onError?.(err);
+      }
+    };
+    void run();
+    const interval = setInterval(() => void run(), 10000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }
+
+  if (!db) {
     onData(MOCK_ROOMS);
     return () => {};
   }
@@ -177,7 +352,31 @@ export function subscribePayments(
   onData: (payments: TwigaPayment[]) => void,
   onError?: (err: unknown) => void
 ): () => void {
-  if (isDemoMode() || !db) {
+  if (isDemoMode()) {
+    onData(sortByCreatedDesc(MOCK_PAYMENTS));
+    return () => {};
+  }
+
+  if (isSupabaseConfigured && !db) {
+    let active = true;
+    const run = async () => {
+      try {
+        const payments = await fetchPayments();
+        if (active) onData(payments);
+      } catch (err) {
+        onData(sortByCreatedDesc(MOCK_PAYMENTS));
+        onError?.(err);
+      }
+    };
+    void run();
+    const interval = setInterval(() => void run(), 10000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }
+
+  if (!db) {
     onData(sortByCreatedDesc(MOCK_PAYMENTS));
     return () => {};
   }
@@ -203,7 +402,31 @@ export function subscribeAdminLogs(
   onData: (logs: AdminLogEntry[]) => void,
   onError?: (err: unknown) => void
 ): () => void {
-  if (isDemoMode() || !db) {
+  if (isDemoMode()) {
+    onData([]);
+    return () => {};
+  }
+
+  if (isSupabaseConfigured && !db) {
+    let active = true;
+    const run = async () => {
+      try {
+        const logs = await fetchAdminLogs();
+        if (active) onData(logs);
+      } catch (err) {
+        onData([]);
+        onError?.(err);
+      }
+    };
+    void run();
+    const interval = setInterval(() => void run(), 10000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }
+
+  if (!db) {
     onData([]);
     return () => {};
   }
@@ -230,7 +453,22 @@ export function subscribeAdminLogs(
 }
 
 export async function updateRoomBasePrice(roomId: string, basePrice: number): Promise<boolean> {
-  if (isDemoMode() || !db) return true;
+  if (isDemoMode()) return true;
+
+  if (isSupabaseConfigured && supabase) {
+    const { error } = await supabase
+      .from('rooms')
+      .update({ base_price: basePrice, updated_at: Date.now() })
+      .eq('company_id', COMPANY_ID)
+      .or(`property_id.eq.${PROPERTY_ID},property_slug.eq.${PROPERTY_ID}`)
+      .eq('id', roomId);
+    if (!error) {
+      await logAdminAction('room.price.update', 'room', roomId, { basePrice });
+      return true;
+    }
+  }
+
+  if (!db) return true;
 
   try {
     const roomRef = doc(db, 'companies', COMPANY_ID, 'properties', PROPERTY_ID, 'rooms', roomId);
@@ -248,7 +486,7 @@ async function logAdminAction(
   entityId: string,
   metadata?: Record<string, unknown>
 ) {
-  if (isDemoMode() || !db) return;
+  if (isDemoMode()) return;
 
   const actor = auth?.currentUser
     ? {
@@ -261,6 +499,22 @@ async function logAdminAction(
         email: 'demo@twiga.local',
         displayName: 'Demo Admin',
       };
+
+  if (isSupabaseConfigured && supabase) {
+    const { error } = await supabase.from('admin_logs').insert({
+      company_id: COMPANY_ID,
+      property_id: PROPERTY_ID,
+      action,
+      entity_type: entityType,
+      entity_id: entityId,
+      actor,
+      metadata: metadata || {},
+      created_at: Date.now(),
+    });
+    if (!error) return;
+  }
+
+  if (!db) return;
 
   await addDoc(collection(db, 'companies', COMPANY_ID, 'adminLogs'), {
     action,
@@ -280,7 +534,33 @@ type BookingStatusUpdateInput = {
 };
 
 export async function updateBookingStatus({ bookingId, status, reason }: BookingStatusUpdateInput): Promise<boolean> {
-  if (isDemoMode() || !db) return true;
+  if (isDemoMode()) return true;
+
+  if (isSupabaseConfigured && supabase) {
+    const now = Date.now();
+    const updateData: Record<string, unknown> = { status, updated_at: now };
+    if (status === 'cancelled') {
+      updateData.cancelled_at = now;
+      updateData.cancel_reason = reason || 'Cancelled by admin';
+    }
+    if (status === 'completed') {
+      updateData.check_in_completed = true;
+      updateData.check_in_completed_at = now;
+    }
+
+    const { error } = await supabase
+      .from('bookings')
+      .update(updateData)
+      .eq('company_id', COMPANY_ID)
+      .or(`property_id.eq.${PROPERTY_ID},property_slug.eq.${PROPERTY_ID}`)
+      .eq('id', bookingId);
+    if (!error) {
+      await logAdminAction('booking.status.update', 'booking', bookingId, { status, reason: reason || null });
+      return true;
+    }
+  }
+
+  if (!db) return true;
 
   try {
     const bookingRef = doc(db, 'companies', COMPANY_ID, 'properties', PROPERTY_ID, 'bookings', bookingId);
@@ -317,7 +597,7 @@ export async function updatePaymentStatus({
   status,
   reason,
 }: PaymentStatusUpdateInput): Promise<{ ok: boolean; bookingStatus?: BookingStatus }> {
-  if (isDemoMode() || !db) {
+  if (isDemoMode()) {
     const demoBookingStatus =
       status === 'confirmed'
         ? 'confirmed'
@@ -326,6 +606,61 @@ export async function updatePaymentStatus({
         : 'pending_payment';
     return { ok: true, bookingStatus: demoBookingStatus };
   }
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const now = Date.now();
+      const paymentUpdate: Record<string, unknown> = { status, updated_at: now };
+      if (status === 'confirmed') {
+        paymentUpdate.confirmed_at = now;
+        paymentUpdate.webhook_received = true;
+        paymentUpdate.webhook_at = now;
+      }
+      if (status === 'failed' || status === 'refunded') {
+        paymentUpdate.failure_reason = reason || `Marked as ${status} by admin`;
+      }
+
+      const { error: paymentError } = await supabase
+        .from('payments')
+        .update(paymentUpdate)
+        .eq('company_id', COMPANY_ID)
+        .or(`property_id.eq.${PROPERTY_ID},property_slug.eq.${PROPERTY_ID}`)
+        .eq('id', paymentId);
+      if (paymentError) return { ok: false };
+
+      let bookingStatus: BookingStatus | undefined;
+      if (status === 'confirmed') bookingStatus = 'confirmed';
+      else if (status === 'failed' || status === 'refunded') bookingStatus = 'cancelled';
+      else if (status === 'processing' || status === 'initiated') bookingStatus = 'pending_payment';
+
+      if (bookingStatus) {
+        const bookingUpdate: Record<string, unknown> = { status: bookingStatus, updated_at: now };
+        if (bookingStatus === 'cancelled') {
+          bookingUpdate.cancel_reason = reason || (status === 'failed' ? 'Payment failed' : 'Payment refunded by admin');
+          bookingUpdate.cancelled_at = now;
+        }
+        await supabase
+          .from('bookings')
+          .update(bookingUpdate)
+          .eq('company_id', COMPANY_ID)
+          .or(`property_id.eq.${PROPERTY_ID},property_slug.eq.${PROPERTY_ID}`)
+          .eq('id', bookingId);
+      }
+
+      await logAdminAction('payment.status.update', 'payment', paymentId, {
+        bookingId,
+        paymentStatus: status,
+        bookingStatus: bookingStatus || null,
+        reason: reason || null,
+      });
+
+      return { ok: true, bookingStatus };
+    } catch {
+      return { ok: false };
+    }
+  }
+
+  if (!db) return { ok: false };
 
   try {
     const now = Date.now();

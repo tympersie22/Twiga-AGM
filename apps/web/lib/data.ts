@@ -2,13 +2,29 @@ import { db, isFirebaseConfigured } from './firebase';
 import { collection, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
 import { MOCK_ROOMS } from '@/lib/shared';
 import type { TwigaRoom } from '@/lib/shared/types';
+import { isSupabaseConfigured, supabase } from './supabase';
 
 const isDemoMode = () => {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-  return !isFirebaseConfigured || !projectId || projectId === 'demo-project' || projectId.startsWith('demo');
+  const firebaseUnavailable =
+    !isFirebaseConfigured || !projectId || projectId === 'demo-project' || projectId.startsWith('demo');
+  return firebaseUnavailable && !isSupabaseConfigured;
 };
 
 const COMPANY_ID = 'twiga-agm';
+
+const normalizeRoom = (row: Record<string, unknown>): TwigaRoom => ({
+  id: String(row.id || ''),
+  name: String(row.name || 'Room'),
+  type: (row.type as TwigaRoom['type']) || 'standard',
+  maxGuests: Number(row.maxGuests ?? row.max_guests ?? 2),
+  basePrice: Number(row.basePrice ?? row.base_price ?? 0),
+  amenities: Array.isArray(row.amenities) ? (row.amenities as string[]) : [],
+  images: Array.isArray(row.images) ? (row.images as string[]) : [],
+  description: String(row.description || ''),
+  bedroomCount: Number(row.bedroomCount ?? row.bedroom_count ?? 1),
+  bathroomCount: Number(row.bathroomCount ?? row.bathroom_count ?? 1),
+});
 
 async function seedRoomsIfEmpty(propertySlug: string): Promise<TwigaRoom[]> {
   if (!db) return MOCK_ROOMS;
@@ -49,8 +65,27 @@ async function seedRoomsIfEmpty(propertySlug: string): Promise<TwigaRoom[]> {
   return MOCK_ROOMS;
 }
 
+async function fetchRoomsFromSupabase(propertySlug: string): Promise<TwigaRoom[] | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+  const { data, error } = await supabase
+    .from('rooms')
+    .select('*')
+    .eq('company_id', COMPANY_ID)
+    .or(`property_slug.eq.${propertySlug},property_id.eq.${propertySlug}`);
+
+  if (error || !data || data.length === 0) return null;
+  return data.map((row) => normalizeRoom(row as Record<string, unknown>));
+}
+
 export async function fetchRooms(propertySlug = 'twiga-residence'): Promise<TwigaRoom[]> {
   if (isDemoMode()) return MOCK_ROOMS;
+
+  try {
+    const supabaseRooms = await fetchRoomsFromSupabase(propertySlug);
+    if (supabaseRooms && supabaseRooms.length > 0) return supabaseRooms;
+  } catch {
+    // Continue to Firestore fallback.
+  }
 
   try {
     return await seedRoomsIfEmpty(propertySlug);
@@ -61,7 +96,27 @@ export async function fetchRooms(propertySlug = 'twiga-residence'): Promise<Twig
 }
 
 export async function fetchRoom(propertySlug: string, roomId: string): Promise<TwigaRoom | null> {
-  if (isDemoMode() || !db) {
+  if (isDemoMode()) {
+    return MOCK_ROOMS.find((r) => r.id === roomId) || null;
+  }
+
+  try {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('company_id', COMPANY_ID)
+        .or(`property_slug.eq.${propertySlug},property_id.eq.${propertySlug}`)
+        .eq('id', roomId)
+        .maybeSingle();
+
+      if (!error && data) return normalizeRoom(data as Record<string, unknown>);
+    }
+  } catch {
+    // Continue to Firestore fallback.
+  }
+
+  if (!db) {
     return MOCK_ROOMS.find((r) => r.id === roomId) || null;
   }
 
@@ -108,8 +163,59 @@ const MOCK_PROPERTY: PropertySummary = {
   priceFrom: 150000,
 };
 
+const normalizeProperty = (
+  row: Record<string, unknown>,
+  fallbackRooms: TwigaRoom[] = []
+): PropertySummary => {
+  const location = (row.location as PropertySummary['location']) || {
+    address: '',
+    city: 'Zanzibar',
+    country: 'Tanzania',
+  };
+  const priceFrom =
+    Number(row.priceFrom ?? row.price_from ?? 0) ||
+    (fallbackRooms.length > 0 ? Math.min(...fallbackRooms.map((room) => room.basePrice)) : 0);
+
+  return {
+    id: String(row.id || ''),
+    name: String(row.name || row.id || 'Property'),
+    slug: String(row.slug || row.id || ''),
+    type: String(row.type || 'boutique'),
+    location,
+    description: String(row.description || MOCK_PROPERTY.description),
+    shortDescription: String(row.shortDescription || row.short_description || MOCK_PROPERTY.shortDescription),
+    totalRooms: Number(row.totalRooms ?? row.total_rooms ?? fallbackRooms.length),
+    priceFrom,
+  };
+};
+
 export async function fetchProperties(): Promise<PropertySummary[]> {
-  if (isDemoMode() || !db) return [MOCK_PROPERTY];
+  if (isDemoMode()) return [MOCK_PROPERTY];
+
+  try {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('company_id', COMPANY_ID);
+
+      if (!error && data && data.length > 0) {
+        const rows = data as Record<string, unknown>[];
+        const properties = await Promise.all(
+          rows.map(async (row) => {
+            const slug = String(row.slug || row.id || '');
+            const rooms = await fetchRoomsFromSupabase(slug);
+            return normalizeProperty(row, rooms || []);
+          })
+        );
+        return properties;
+      }
+    }
+  } catch {
+    // Continue to Firestore fallback.
+  }
+
+  if (!db) return [MOCK_PROPERTY];
 
   try {
     const propsRef = collection(db, 'companies', COMPANY_ID, 'properties');
@@ -143,6 +249,24 @@ export async function fetchProperties(): Promise<PropertySummary[]> {
 }
 
 export async function fetchProperty(slug: string): Promise<PropertySummary | null> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('company_id', COMPANY_ID)
+        .eq('slug', slug)
+        .maybeSingle();
+
+      if (!error && data) {
+        const rooms = await fetchRoomsFromSupabase(slug);
+        return normalizeProperty(data as Record<string, unknown>, rooms || []);
+      }
+    } catch {
+      // Continue to generic fallback.
+    }
+  }
+
   const properties = await fetchProperties();
   return properties.find((p) => p.slug === slug) || null;
 }

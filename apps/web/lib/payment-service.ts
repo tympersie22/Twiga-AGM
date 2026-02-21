@@ -1,6 +1,7 @@
 import { db, isFirebaseConfigured } from './firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { calculateNights } from '@/lib/shared';
+import { isSupabaseConfigured, supabase } from './supabase';
 
 export interface InitiatePaymentRequest {
   booking: {
@@ -98,6 +99,35 @@ export const paymentService = {
     if (data.phoneNumber) {
       paymentDoc.phoneNumber = data.phoneNumber;
     }
+    if (isSupabaseConfigured && supabase) {
+      const { error: bookingError } = await supabase.from('bookings').insert({
+        ...bookingDoc,
+        company_id: COMPANY_ID,
+        property_slug: PROPERTY_ID,
+      });
+      if (bookingError) {
+        console.warn('[Supabase] Failed to write booking', bookingError.message);
+      } else {
+        const { error: paymentError } = await supabase.from('payments').insert({
+          ...paymentDoc,
+          company_id: COMPANY_ID,
+          property_slug: PROPERTY_ID,
+        });
+        if (paymentError) {
+          console.warn('[Supabase] Failed to write payment', paymentError.message);
+        } else {
+          return {
+            bookingId,
+            paymentId,
+            status: isPayOnArrival ? 'pending_approval' : 'payment_pending',
+            message: isPayOnArrival
+              ? `Booking ${bookingId} created. Pay on arrival confirmed.`
+              : `Booking ${bookingId} created. Payment is pending confirmation.`,
+          };
+        }
+      }
+    }
+
     if (isFirebaseConfigured && db) {
       const bookingRef = doc(db, 'companies', COMPANY_ID, 'properties', PROPERTY_ID, 'bookings', bookingId);
       await setDoc(bookingRef, bookingDoc);
