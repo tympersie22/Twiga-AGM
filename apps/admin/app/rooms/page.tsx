@@ -21,8 +21,8 @@ import {
   subscribeRooms,
   updateRoomBasePrice,
 } from '@/lib/data';
-import { formatCurrency } from '@twiga/shared/utils/formatting';
-import type { TwigaBooking, TwigaRoom } from '@twiga/shared/types';
+import { formatCurrency } from '@/lib/shared/utils/formatting';
+import type { TwigaBooking, TwigaRoom } from '@/lib/shared/types';
 
 const amenityIcons: Record<string, React.ElementType> = {
   WiFi: Wifi,

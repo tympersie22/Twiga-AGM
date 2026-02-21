@@ -15,8 +15,7 @@
     "framer-motion": "^10.16.0",
     "firebase": "^10.0.0",
     "recharts": "^2.10.0",
-    "lucide-react": "^0.263.0",
-    "@twiga/shared": "*"
+    "lucide-react": "^0.263.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

@@ -1,7 +1,7 @@
 'use client';
 
-import type { TwigaBooking, TwigaRoom } from '@twiga/shared/types';
-import { formatCurrency } from '@twiga/shared/utils/formatting';
+import type { TwigaBooking, TwigaRoom } from '@/lib/shared/types';
+import { formatCurrency } from '@/lib/shared/utils/formatting';
 
 interface RecentBookingsProps {
   bookings: TwigaBooking[];

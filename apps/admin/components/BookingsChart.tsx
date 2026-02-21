@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import type { TwigaBooking } from '@twiga/shared/types';
+import type { TwigaBooking } from '@/lib/shared/types';
 
 interface BookingsChartProps {
   bookings: TwigaBooking[];

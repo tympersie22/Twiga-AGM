@@ -11,9 +11,9 @@ import {
   updateDoc,
   where,
 } from 'firebase/firestore';
-import { MOCK_BOOKINGS, MOCK_ROOMS, MOCK_PAYMENTS } from '@twiga/shared';
-import type { TwigaBooking, TwigaRoom, TwigaPayment } from '@twiga/shared/types';
-import type { BookingStatus, PaymentStatus } from '@twiga/shared/types';
+import { MOCK_BOOKINGS, MOCK_ROOMS, MOCK_PAYMENTS } from '@/lib/shared';
+import type { TwigaBooking, TwigaRoom, TwigaPayment } from '@/lib/shared/types';
+import type { BookingStatus, PaymentStatus } from '@/lib/shared/types';
 import { auth } from './firebase';
 
 const COMPANY_ID = 'twiga-agm';

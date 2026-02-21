@@ -13,7 +13,7 @@ import {
   Wallet,
   X,
 } from 'lucide-react';
-import { formatCurrency, formatDate, formatDateTime, formatPhoneNumber } from '@twiga/shared/utils/formatting';
+import { formatCurrency, formatDate, formatDateTime, formatPhoneNumber } from '@/lib/shared/utils/formatting';
 import {
   fetchPayments,
   fetchBookings,
@@ -22,7 +22,7 @@ import {
   updatePaymentStatus,
   updatePaymentStatusesBulk,
 } from '@/lib/data';
-import type { BookingStatus, PaymentStatus, TwigaPayment, TwigaBooking } from '@twiga/shared/types';
+import type { BookingStatus, PaymentStatus, TwigaPayment, TwigaBooking } from '@/lib/shared/types';
 
 const statusStyles: Record<string, string> = {
   confirmed: 'bg-[#e6f2e5] text-[#4d7a4d]',

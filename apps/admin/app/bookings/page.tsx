@@ -21,8 +21,8 @@ import {
   updateBookingStatus,
   updateBookingStatusesBulk,
 } from '@/lib/data';
-import { formatCurrency, formatDate, formatPhoneNumber } from '@twiga/shared/utils/formatting';
-import type { BookingStatus, TwigaBooking, TwigaRoom } from '@twiga/shared/types';
+import { formatCurrency, formatDate, formatPhoneNumber } from '@/lib/shared/utils/formatting';
+import type { BookingStatus, TwigaBooking, TwigaRoom } from '@/lib/shared/types';
 
 const statusStyles: Record<string, string> = {
   confirmed: 'bg-[#e6f2e5] text-[#4d7a4d]',
