@@ -1,8 +1,8 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { onAuthStateChanged, signOut as firebaseSignOut, type User } from 'firebase/auth';
-import { auth, isFirebaseConfigured } from './firebase';
+import type { User } from '@supabase/supabase-js';
+import { supabase, isSupabaseConfigured } from './supabase';
 import { useRouter, usePathname } from 'next/navigation';
 
 interface AuthContextType {
@@ -24,34 +24,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!auth || !isFirebaseConfigured) {
-      setUser({
-        uid: 'demo-admin',
-        email: 'demo@twiga.local',
-        displayName: 'Demo Admin',
-      } as User);
+    if (!supabase || !isSupabaseConfigured) {
+      setUser(null);
       setLoading(false);
+      if (pathname !== '/login') router.push('/login');
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      setLoading(false);
+    let mounted = true;
 
-      if (!firebaseUser && pathname !== '/login') {
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      setUser(data.session?.user ?? null);
+      setLoading(false);
+      if (!data.session?.user && pathname !== '/login') {
         router.push('/login');
       }
     });
 
-    return unsubscribe;
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+      if (!session?.user && pathname !== '/login') {
+        router.push('/login');
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [router, pathname]);
 
   const signOut = async () => {
-    if (!auth || !isFirebaseConfigured) {
+    if (!supabase || !isSupabaseConfigured) {
       router.push('/login');
       return;
     }
-    await firebaseSignOut(auth);
+    await supabase.auth.signOut();
     router.push('/login');
   };
 

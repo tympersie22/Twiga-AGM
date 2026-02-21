@@ -66,6 +66,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, loading, signOut } = useAuth();
+  const profileName =
+    (user?.user_metadata?.full_name as string | undefined) ||
+    (user?.email ? user.email.split('@')[0] : 'Admin');
 
   if (pathname === '/login') return <>{children}</>;
 
@@ -170,7 +173,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-[#1d2a22] truncate">{user?.displayName || 'Admin'}</p>
+              <p className="text-sm font-semibold text-[#1d2a22] truncate">{profileName}</p>
               <p className="text-xs text-[#7e8f80] truncate">{user?.email || 'admin@twiga-agm.com'}</p>
             </div>
             <button onClick={signOut} title="Sign out" className="text-[#7e8f80] hover:text-[#bf5342] transition">
