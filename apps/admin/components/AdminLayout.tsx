@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -25,6 +25,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 type NavItem = {
   href: string;
@@ -57,7 +58,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
       { href: '/logs', label: 'Activity Logs', icon: FileText },
       { href: '/payments', label: 'Manage Platform', icon: ClipboardList },
       { href: '/payments', label: 'Upgrade Plan', icon: CreditCard },
-      { href: '/payments', label: 'Settings', icon: Settings },
+      { href: '/settings', label: 'Settings', icon: Settings },
     ],
   },
 ];
@@ -66,9 +67,49 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, loading, signOut } = useAuth();
-  const profileName =
-    (user?.user_metadata?.full_name as string | undefined) ||
-    (user?.email ? user.email.split('@')[0] : 'Admin');
+  const [profileNameOverride, setProfileNameOverride] = useState<string>('');
+  const metadata = (user?.user_metadata || {}) as Record<string, unknown>;
+  const identityData = (user?.identities?.[0]?.identity_data || {}) as Record<string, unknown>;
+  const rawName =
+    (metadata.full_name as string | undefined) ||
+    (metadata.name as string | undefined) ||
+    (metadata.display_name as string | undefined) ||
+    (identityData.full_name as string | undefined) ||
+    (identityData.name as string | undefined) ||
+    '';
+  const fallbackFromEmail = user?.email
+    ? user.email
+        .split('@')[0]
+        .replace(/[._-]+/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase())
+    : 'Admin';
+  const profileName = rawName.trim() || fallbackFromEmail;
+  const resolvedProfileName = profileNameOverride || profileName;
+
+  useEffect(() => {
+    let active = true;
+    const loadProfile = async () => {
+      if (!supabase || !user?.id) return;
+      const { data } = await supabase
+        .from('admin_profiles')
+        .select('full_name')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (!active) return;
+      const fullName = typeof data?.full_name === 'string' ? data.full_name.trim() : '';
+      setProfileNameOverride(fullName);
+    };
+
+    if (!rawName.trim()) {
+      void loadProfile();
+    } else {
+      setProfileNameOverride('');
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [user?.id, rawName]);
 
   if (pathname === '/login') return <>{children}</>;
 
@@ -173,7 +214,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-[#1d2a22] truncate">{profileName}</p>
+              <p className="text-sm font-semibold text-[#1d2a22] truncate">{resolvedProfileName}</p>
               <p className="text-xs text-[#7e8f80] truncate">{user?.email || 'admin@twiga-agm.com'}</p>
             </div>
             <button onClick={signOut} title="Sign out" className="text-[#7e8f80] hover:text-[#bf5342] transition">
