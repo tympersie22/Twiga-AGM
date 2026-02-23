@@ -41,46 +41,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) {
       return { role: 'manager' as const, displayName: toDisplayName(sessionUser.email) };
     }
-    const { data } = await supabase
-      .from('admin_profiles')
-      .select('full_name, role, email')
-      .eq('user_id', sessionUser.id)
-      .maybeSingle();
 
-    const roleFromProfile = data?.role;
-    const resolvedRole =
-      roleFromProfile === 'admin' || roleFromProfile === 'super_admin' ? roleFromProfile : 'manager';
-
-    const existingName = typeof data?.full_name === 'string' ? data.full_name.trim() : '';
-    const metadata = (sessionUser.user_metadata || {}) as Record<string, unknown>;
-    const metadataName = typeof metadata.full_name === 'string' ? metadata.full_name.trim() : '';
-    const resolvedName = existingName || metadataName || toDisplayName(sessionUser.email);
-
-    if (!data) {
-      const now = Date.now();
-      await supabase.from('admin_profiles').upsert(
-        {
-          user_id: sessionUser.id,
-          company_id: 'twiga-agm',
-          email: sessionUser.email || null,
-          full_name: resolvedName,
-          role: 'manager',
-          updated_at: now,
-        },
-        { onConflict: 'user_id' },
-      );
-    } else if (!existingName || data.email !== sessionUser.email) {
-      await supabase
+    try {
+      const { data } = await supabase
         .from('admin_profiles')
-        .update({
-          full_name: resolvedName,
-          email: sessionUser.email || null,
-          updated_at: Date.now(),
-        })
-        .eq('user_id', sessionUser.id);
-    }
+        .select('full_name, role, email')
+        .eq('user_id', sessionUser.id)
+        .maybeSingle();
 
-    return { role: resolvedRole, displayName: resolvedName };
+      const roleFromProfile = data?.role;
+      const resolvedRole =
+        roleFromProfile === 'admin' || roleFromProfile === 'super_admin' ? roleFromProfile : 'manager';
+
+      const existingName = typeof data?.full_name === 'string' ? data.full_name.trim() : '';
+      const metadata = (sessionUser.user_metadata || {}) as Record<string, unknown>;
+      const metadataName = typeof metadata.full_name === 'string' ? metadata.full_name.trim() : '';
+      const resolvedName = existingName || metadataName || toDisplayName(sessionUser.email);
+
+      if (!data) {
+        const now = Date.now();
+        await supabase.from('admin_profiles').upsert(
+          {
+            user_id: sessionUser.id,
+            company_id: 'twiga-agm',
+            email: sessionUser.email || null,
+            full_name: resolvedName,
+            role: 'manager',
+            updated_at: now,
+          },
+          { onConflict: 'user_id' },
+        );
+      } else if (!existingName || data.email !== sessionUser.email) {
+        await supabase
+          .from('admin_profiles')
+          .update({
+            full_name: resolvedName,
+            email: sessionUser.email || null,
+            updated_at: Date.now(),
+          })
+          .eq('user_id', sessionUser.id);
+      }
+
+      return { role: resolvedRole, displayName: resolvedName };
+    } catch {
+      return { role: 'manager' as const, displayName: toDisplayName(sessionUser.email) };
+    }
   }, []);
 
   useEffect(() => {

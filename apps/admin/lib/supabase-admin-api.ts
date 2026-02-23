@@ -17,15 +17,19 @@ async function buildAuthHeaders() {
 }
 
 async function request<T>(url: string, method: 'PATCH', body: Record<string, unknown>): Promise<T | null> {
-  const headers = await buildAuthHeaders();
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: JSON.stringify(body),
-  });
+  try {
+    const headers = await buildAuthHeaders();
+    const res = await fetch(url, {
+      method,
+      headers,
+      body: JSON.stringify(body),
+    });
 
-  if (!res.ok) return null;
-  return (await res.json()) as T;
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
 }
 
 export const supabaseAdminApi = {

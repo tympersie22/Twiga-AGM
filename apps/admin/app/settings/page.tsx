@@ -73,53 +73,58 @@ export default function SettingsPage() {
       return;
     }
 
-    const now = Date.now();
-    const updatePayload = {
-      email: user.email || null,
-      full_name: fullName.trim(),
-      phone: phone.trim() || null,
-      updated_at: now,
-    };
-
-    const { data: updatedRows, error: updateError } = await supabase
-      .from('admin_profiles')
-      .update(updatePayload)
-      .eq('user_id', user.id)
-      .select('user_id')
-      .limit(1);
-
-    if (updateError) {
-      setError(updateError.message);
-      setSaving(false);
-      return;
-    }
-
-    if (!updatedRows || updatedRows.length === 0) {
-      const { error: insertError } = await supabase.from('admin_profiles').insert({
-        user_id: user.id,
-        company_id: COMPANY_ID,
+    try {
+      const now = Date.now();
+      const updatePayload = {
         email: user.email || null,
         full_name: fullName.trim(),
         phone: phone.trim() || null,
-        role: 'manager',
         updated_at: now,
-      });
+      };
 
-      if (insertError) {
-        setError(insertError.message);
+      const { data: updatedRows, error: updateError } = await supabase
+        .from('admin_profiles')
+        .update(updatePayload)
+        .eq('user_id', user.id)
+        .select('user_id')
+        .limit(1);
+
+      if (updateError) {
+        setError(updateError.message);
         setSaving(false);
         return;
       }
+
+      if (!updatedRows || updatedRows.length === 0) {
+        const { error: insertError } = await supabase.from('admin_profiles').insert({
+          user_id: user.id,
+          company_id: COMPANY_ID,
+          email: user.email || null,
+          full_name: fullName.trim(),
+          phone: phone.trim() || null,
+          role: 'manager',
+          updated_at: now,
+        });
+
+        if (insertError) {
+          setError(insertError.message);
+          setSaving(false);
+          return;
+        }
+      }
+
+      await supabase.auth.updateUser({
+        data: {
+          full_name: fullName.trim(),
+        },
+      });
+
+      setMessage('Profile saved.');
+      setSaving(false);
+    } catch {
+      setError('Network error. Please retry.');
+      setSaving(false);
     }
-
-    await supabase.auth.updateUser({
-      data: {
-        full_name: fullName.trim(),
-      },
-    });
-
-    setMessage('Profile saved.');
-    setSaving(false);
   };
 
   if (loading) {
