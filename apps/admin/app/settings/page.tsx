@@ -74,23 +74,42 @@ export default function SettingsPage() {
     }
 
     const now = Date.now();
-    const payload = {
-      user_id: user.id,
-      company_id: COMPANY_ID,
+    const updatePayload = {
       email: user.email || null,
       full_name: fullName.trim(),
       phone: phone.trim() || null,
       updated_at: now,
     };
 
-    const { error: upsertError } = await supabase
+    const { data: updatedRows, error: updateError } = await supabase
       .from('admin_profiles')
-      .upsert(payload, { onConflict: 'user_id' });
+      .update(updatePayload)
+      .eq('user_id', user.id)
+      .select('user_id')
+      .limit(1);
 
-    if (upsertError) {
-      setError(upsertError.message);
+    if (updateError) {
+      setError(updateError.message);
       setSaving(false);
       return;
+    }
+
+    if (!updatedRows || updatedRows.length === 0) {
+      const { error: insertError } = await supabase.from('admin_profiles').insert({
+        user_id: user.id,
+        company_id: COMPANY_ID,
+        email: user.email || null,
+        full_name: fullName.trim(),
+        phone: phone.trim() || null,
+        role: 'manager',
+        updated_at: now,
+      });
+
+      if (insertError) {
+        setError(insertError.message);
+        setSaving(false);
+        return;
+      }
     }
 
     await supabase.auth.updateUser({
