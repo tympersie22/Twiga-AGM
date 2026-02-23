@@ -19,6 +19,11 @@ export default function SettingsPage() {
   const userEmail = user?.email || '';
   const userMetaFullName =
     typeof user?.user_metadata?.full_name === 'string' ? (user.user_metadata.full_name as string) : '';
+  const fallbackFromEmail = (email: string) =>
+    email
+      .split('@')[0]
+      .replace(/[._-]+/g, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase());
 
   useEffect(() => {
     let active = true;
@@ -43,7 +48,7 @@ export default function SettingsPage() {
         setFullName((data.full_name as string) || '');
         setPhone((data.phone as string) || '');
       } else {
-        const defaultName = userMetaFullName || (userEmail ? userEmail.split('@')[0].replace(/[._-]+/g, ' ') : '');
+        const defaultName = userMetaFullName || (userEmail ? fallbackFromEmail(userEmail) : '');
         setFullName(defaultName);
       }
 
