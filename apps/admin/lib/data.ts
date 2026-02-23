@@ -459,7 +459,7 @@ export async function updateRoomBasePrice(roomId: string, basePrice: number): Pr
   if (isSupabaseConfigured && supabase) {
     const response = await supabaseAdminApi.updateRoomBasePrice(roomId, basePrice);
     if (response?.ok) return true;
-    if (!db) return false;
+    return false;
   }
 
   if (!db) return true;
@@ -533,7 +533,7 @@ export async function updateBookingStatus({ bookingId, status, reason }: Booking
   if (isSupabaseConfigured && supabase) {
     const response = await supabaseAdminApi.updateBookingStatus(bookingId, status, reason);
     if (response?.ok) return true;
-    if (!db) return false;
+    return false;
   }
 
   if (!db) return true;
@@ -588,7 +588,6 @@ export async function updatePaymentStatus({
     if (response?.ok) {
       return { ok: true, bookingStatus: response.bookingStatus as BookingStatus | undefined };
     }
-    if (!db) return { ok: false };
     return { ok: false };
   }
 

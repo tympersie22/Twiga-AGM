@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import {
   COMPANY_ID,
   PROPERTY_ID,
-  getActor,
+  getActorWithProfile,
   getServiceClient,
   getUserRole,
   logAdminAction,
@@ -38,6 +38,7 @@ export async function PATCH(req: Request, context: { params: Promise<{ roomId: s
 
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 
-  await logAdminAction(service, 'room.price.update', 'room', roomId, getActor(auth.user), { basePrice, role });
+  const actor = await getActorWithProfile(service, auth.user);
+  await logAdminAction(service, 'room.price.update', 'room', roomId, actor, { basePrice, role });
   return NextResponse.json({ ok: true });
 }

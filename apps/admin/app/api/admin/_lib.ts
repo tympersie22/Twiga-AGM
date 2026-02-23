@@ -52,6 +52,22 @@ export function getActor(user: User) {
   };
 }
 
+export async function getActorWithProfile(
+  service: ReturnType<typeof getServiceClient>,
+  user: User,
+): Promise<ReturnType<typeof getActor>> {
+  const fallback = getActor(user);
+  if (!service) return fallback;
+
+  const { data } = await service.from('admin_profiles').select('full_name').eq('user_id', user.id).maybeSingle();
+  const profileName = typeof data?.full_name === 'string' ? data.full_name.trim() : '';
+
+  return {
+    ...fallback,
+    displayName: profileName || fallback.displayName,
+  };
+}
+
 export async function getUserRole(service: ReturnType<typeof getServiceClient>, userId: string): Promise<AdminRole> {
   if (!service) return 'manager';
   const { data } = await service.from('admin_profiles').select('role').eq('user_id', userId).maybeSingle();
