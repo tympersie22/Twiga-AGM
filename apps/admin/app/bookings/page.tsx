@@ -21,6 +21,7 @@ import {
   updateBookingStatus,
   updateBookingStatusesBulk,
 } from '@/lib/data';
+import { useAuth } from '@/lib/AuthContext';
 import { formatCurrency, formatDate, formatPhoneNumber } from '@/lib/shared/utils/formatting';
 import type { BookingStatus, TwigaBooking, TwigaRoom } from '@/lib/shared/types';
 
@@ -47,6 +48,8 @@ const sourceLabels: Record<string, string> = {
 };
 
 export default function BookingsPage() {
+  const { role } = useAuth();
+  const canCancelBookings = role === 'admin' || role === 'super_admin';
   const [bookings, setBookings] = useState<TwigaBooking[]>([]);
   const [rooms, setRooms] = useState<TwigaRoom[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,6 +165,10 @@ export default function BookingsPage() {
 
   const handleBookingAction = async (status: BookingStatus) => {
     if (!selectedBooking) return;
+    if (status === 'cancelled' && !canCancelBookings) {
+      setActionError('Managers cannot cancel reservations.');
+      return;
+    }
     if (status === 'cancelled' && !cancelReason.trim()) {
       setActionError('Please provide a cancellation reason.');
       return;
@@ -184,6 +191,10 @@ export default function BookingsPage() {
 
   const handleBulkBookingAction = async (status: BookingStatus) => {
     if (selectedBookingIds.length === 0) return;
+    if (status === 'cancelled' && !canCancelBookings) {
+      setBulkError('Managers cannot cancel reservations.');
+      return;
+    }
     if (status === 'cancelled' && !cancelReason.trim()) {
       setBulkError('Please provide a cancellation reason for bulk cancel.');
       return;
@@ -296,13 +307,15 @@ export default function BookingsPage() {
               >
                 {bulkLoading === 'completed' ? 'Updating...' : 'Bulk Complete'}
               </button>
-              <button
-                onClick={() => handleBulkBookingAction('cancelled')}
-                disabled={bulkLoading !== null}
-                className="h-8 px-3 rounded-lg border border-[#ebd0cc] bg-[#f9ece9] text-[#9d4f44] text-xs font-semibold disabled:opacity-60"
-              >
-                {bulkLoading === 'cancelled' ? 'Cancelling...' : 'Bulk Cancel'}
-              </button>
+              {canCancelBookings ? (
+                <button
+                  onClick={() => handleBulkBookingAction('cancelled')}
+                  disabled={bulkLoading !== null}
+                  className="h-8 px-3 rounded-lg border border-[#ebd0cc] bg-[#f9ece9] text-[#9d4f44] text-xs font-semibold disabled:opacity-60"
+                >
+                  {bulkLoading === 'cancelled' ? 'Cancelling...' : 'Bulk Cancel'}
+                </button>
+              ) : null}
               <button
                 onClick={() => setSelectedBookingIds([])}
                 className="h-8 px-3 rounded-lg border border-[#d8e1d7] bg-white text-[#5f715f] text-xs font-semibold"
@@ -310,12 +323,14 @@ export default function BookingsPage() {
                 Clear
               </button>
             </div>
-            <textarea
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              placeholder="Cancellation reason for bulk cancel"
-              className="mt-2 w-full min-h-[64px] rounded-lg border border-[#d8e1d7] px-3 py-2 text-sm text-[#2f4032] outline-none focus:border-[#b9cdb7]"
-            />
+            {canCancelBookings ? (
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Cancellation reason for bulk cancel"
+                className="mt-2 w-full min-h-[64px] rounded-lg border border-[#d8e1d7] px-3 py-2 text-sm text-[#2f4032] outline-none focus:border-[#b9cdb7]"
+              />
+            ) : null}
             {bulkError ? <p className="mt-1 text-sm text-[#aa5447]">{bulkError}</p> : null}
           </div>
         ) : null}
@@ -461,20 +476,24 @@ export default function BookingsPage() {
                   >
                     {actionLoading === 'completed' ? 'Updating...' : 'Mark Completed'}
                   </button>
-                  <button
-                    onClick={() => handleBookingAction('cancelled')}
-                    disabled={actionLoading !== null}
-                    className="h-10 rounded-xl border border-[#ebd0cc] bg-[#f9ece9] text-[#9d4f44] text-sm font-semibold disabled:opacity-60"
-                  >
-                    {actionLoading === 'cancelled' ? 'Cancelling...' : 'Cancel Booking'}
-                  </button>
+                  {canCancelBookings ? (
+                    <button
+                      onClick={() => handleBookingAction('cancelled')}
+                      disabled={actionLoading !== null}
+                      className="h-10 rounded-xl border border-[#ebd0cc] bg-[#f9ece9] text-[#9d4f44] text-sm font-semibold disabled:opacity-60"
+                    >
+                      {actionLoading === 'cancelled' ? 'Cancelling...' : 'Cancel Booking'}
+                    </button>
+                  ) : null}
                 </div>
-                <textarea
-                  value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  placeholder="Cancellation reason (required for cancel action)"
-                  className="mt-3 w-full min-h-[78px] rounded-xl border border-[#d8e1d7] px-3 py-2 text-sm text-[#2f4032] outline-none focus:border-[#b9cdb7]"
-                />
+                {canCancelBookings ? (
+                  <textarea
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    placeholder="Cancellation reason (required for cancel action)"
+                    className="mt-3 w-full min-h-[78px] rounded-xl border border-[#d8e1d7] px-3 py-2 text-sm text-[#2f4032] outline-none focus:border-[#b9cdb7]"
+                  />
+                ) : null}
                 {actionError ? <p className="mt-2 text-sm text-[#aa5447]">{actionError}</p> : null}
               </div>
             </div>

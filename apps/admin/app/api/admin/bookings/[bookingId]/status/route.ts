@@ -4,6 +4,7 @@ import {
   PROPERTY_ID,
   getActor,
   getServiceClient,
+  getUserRole,
   logAdminAction,
   requireAuthenticatedUser,
 } from '../../../_lib';
@@ -17,6 +18,7 @@ export async function PATCH(req: Request, context: { params: Promise<{ bookingId
   if (!service) {
     return NextResponse.json({ ok: false, error: 'Service role is not configured' }, { status: 500 });
   }
+  const role = await getUserRole(service, auth.user.id);
 
   const { bookingId } = await context.params;
   const body = (await req.json()) as { status?: BookingStatus; reason?: string };
@@ -24,6 +26,9 @@ export async function PATCH(req: Request, context: { params: Promise<{ bookingId
   const reason = body.reason;
   if (!bookingId || !status) {
     return NextResponse.json({ ok: false, error: 'Invalid payload' }, { status: 400 });
+  }
+  if (status === 'cancelled' && role !== 'admin' && role !== 'super_admin') {
+    return NextResponse.json({ ok: false, error: 'Forbidden' }, { status: 403 });
   }
 
   const now = Date.now();
@@ -52,6 +57,7 @@ export async function PATCH(req: Request, context: { params: Promise<{ bookingId
   await logAdminAction(service, 'booking.status.update', 'booking', bookingId, getActor(auth.user), {
     status,
     reason: reason || null,
+    role,
   });
   return NextResponse.json({ ok: true });
 }

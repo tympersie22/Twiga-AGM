@@ -8,6 +8,7 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export const COMPANY_ID = 'twiga-agm';
 export const PROPERTY_ID = 'twiga-residence';
+export type AdminRole = 'admin' | 'manager' | 'super_admin';
 
 export function getServiceClient() {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return null;
@@ -49,6 +50,14 @@ export function getActor(user: User) {
     email: user.email || null,
     displayName: ((user.user_metadata?.full_name as string | undefined) || user.email || 'Admin') as string,
   };
+}
+
+export async function getUserRole(service: ReturnType<typeof getServiceClient>, userId: string): Promise<AdminRole> {
+  if (!service) return 'manager';
+  const { data } = await service.from('admin_profiles').select('role').eq('user_id', userId).maybeSingle();
+  const role = data?.role;
+  if (role === 'admin' || role === 'super_admin') return role;
+  return 'manager';
 }
 
 export async function logAdminAction(

@@ -21,6 +21,7 @@ import {
   subscribeRooms,
   updateRoomBasePrice,
 } from '@/lib/data';
+import { useAuth } from '@/lib/AuthContext';
 import { formatCurrency } from '@/lib/shared/utils/formatting';
 import type { TwigaBooking, TwigaRoom } from '@/lib/shared/types';
 
@@ -45,6 +46,8 @@ const roomStatusStyles: Record<string, string> = {
 };
 
 export default function RoomsPage() {
+  const { role } = useAuth();
+  const canEditPrices = role === 'admin' || role === 'super_admin';
   const [rooms, setRooms] = useState<TwigaRoom[]>([]);
   const [bookings, setBookings] = useState<TwigaBooking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,6 +123,10 @@ export default function RoomsPage() {
   };
 
   const handleSavePrice = async () => {
+    if (!canEditPrices) {
+      setSaveError('Managers cannot edit room prices.');
+      return;
+    }
     if (!selectedRoom || !editPrice) return;
 
     const newPrice = parseInt(editPrice, 10) * 100;
@@ -287,10 +294,16 @@ export default function RoomsPage() {
                 ) : (
                   <div className="flex items-center justify-between">
                     <p className="text-2xl font-semibold text-[#2b3c2d]">{formatCurrency(selectedRoom.basePrice, 'TZS')}</p>
-                    <button onClick={() => setEditMode(true)} className="h-9 px-3 rounded-xl border border-[#d8e1d7] text-sm text-[#5f715f] inline-flex items-center gap-1.5 hover:bg-[#f1f6f0]">
-                      <Edit2 className="w-4 h-4" />
-                      Edit
-                    </button>
+                    {canEditPrices ? (
+                      <button onClick={() => setEditMode(true)} className="h-9 px-3 rounded-xl border border-[#d8e1d7] text-sm text-[#5f715f] inline-flex items-center gap-1.5 hover:bg-[#f1f6f0]">
+                        <Edit2 className="w-4 h-4" />
+                        Edit
+                      </button>
+                    ) : (
+                      <span className="h-9 px-3 rounded-xl border border-[#e3ebe2] text-sm text-[#93a294] inline-flex items-center">
+                        View only
+                      </span>
+                    )}
                   </div>
                 )}
               </div>

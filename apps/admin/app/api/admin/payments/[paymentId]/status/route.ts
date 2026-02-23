@@ -4,6 +4,7 @@ import {
   PROPERTY_ID,
   getActor,
   getServiceClient,
+  getUserRole,
   logAdminAction,
   requireAuthenticatedUser,
 } from '../../../_lib';
@@ -17,6 +18,7 @@ export async function PATCH(req: Request, context: { params: Promise<{ paymentId
   if (!service) {
     return NextResponse.json({ ok: false, error: 'Service role is not configured' }, { status: 500 });
   }
+  const role = await getUserRole(service, auth.user.id);
 
   const { paymentId } = await context.params;
   const body = (await req.json()) as { bookingId?: string; status?: PaymentStatus; reason?: string };
@@ -78,6 +80,7 @@ export async function PATCH(req: Request, context: { params: Promise<{ paymentId
     paymentStatus: status,
     bookingStatus: bookingStatus || null,
     reason: reason || null,
+    role,
   });
 
   return NextResponse.json({ ok: true, bookingStatus: bookingStatus || null });

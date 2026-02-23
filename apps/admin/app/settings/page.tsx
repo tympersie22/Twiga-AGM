@@ -11,7 +11,6 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState('admin');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -43,7 +42,6 @@ export default function SettingsPage() {
       } else if (data) {
         setFullName((data.full_name as string) || '');
         setPhone((data.phone as string) || '');
-        setRole((data.role as string) || 'admin');
       } else {
         const defaultName = userMetaFullName || (userEmail ? userEmail.split('@')[0].replace(/[._-]+/g, ' ') : '');
         setFullName(defaultName);
@@ -77,7 +75,6 @@ export default function SettingsPage() {
       email: user.email || null,
       full_name: fullName.trim(),
       phone: phone.trim() || null,
-      role: role.trim() || 'admin',
       updated_at: now,
     };
 
@@ -146,19 +143,6 @@ export default function SettingsPage() {
             placeholder="+255 ..."
             className="w-full h-11 rounded-xl border border-[#d8e1d7] px-3 text-sm text-[#2f4032] outline-none focus:border-[#b9cdb7]"
           />
-        </div>
-
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide text-[#7b8b7b] mb-2">Role</label>
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="w-full h-11 rounded-xl border border-[#d8e1d7] px-3 text-sm text-[#2f4032] outline-none focus:border-[#b9cdb7]"
-          >
-            <option value="admin">Admin</option>
-            <option value="manager">Manager</option>
-            <option value="super_admin">Super Admin</option>
-          </select>
         </div>
 
         {error && <p className="text-sm text-[#be4c42]">{error}</p>}

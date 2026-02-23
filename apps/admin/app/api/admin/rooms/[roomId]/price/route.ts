@@ -1,5 +1,13 @@
 import { NextResponse } from 'next/server';
-import { COMPANY_ID, PROPERTY_ID, getActor, getServiceClient, logAdminAction, requireAuthenticatedUser } from '../../../_lib';
+import {
+  COMPANY_ID,
+  PROPERTY_ID,
+  getActor,
+  getServiceClient,
+  getUserRole,
+  logAdminAction,
+  requireAuthenticatedUser,
+} from '../../../_lib';
 
 export async function PATCH(req: Request, context: { params: Promise<{ roomId: string }> }) {
   const auth = await requireAuthenticatedUser(req);
@@ -8,6 +16,10 @@ export async function PATCH(req: Request, context: { params: Promise<{ roomId: s
   const service = getServiceClient();
   if (!service) {
     return NextResponse.json({ ok: false, error: 'Service role is not configured' }, { status: 500 });
+  }
+  const role = await getUserRole(service, auth.user.id);
+  if (role !== 'admin' && role !== 'super_admin') {
+    return NextResponse.json({ ok: false, error: 'Forbidden' }, { status: 403 });
   }
 
   const { roomId } = await context.params;
@@ -26,6 +38,6 @@ export async function PATCH(req: Request, context: { params: Promise<{ roomId: s
 
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 
-  await logAdminAction(service, 'room.price.update', 'room', roomId, getActor(auth.user), { basePrice });
+  await logAdminAction(service, 'room.price.update', 'room', roomId, getActor(auth.user), { basePrice, role });
   return NextResponse.json({ ok: true });
 }
